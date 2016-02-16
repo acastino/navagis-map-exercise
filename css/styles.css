@@ -1,0 +1,227 @@
+html, body {
+	height: 100%; margin: 0; padding: 0;
+	background-color: #fff;
+	font-family: Verdana;
+}
+
+#loading {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	z-index: 1;
+	background-color: rgba(255,255,255,0.8);
+}
+
+#loading div {
+	position: relative;
+	left: 50%;
+	top: 50%;
+	width: 100px;
+	margin-left: -50px;
+	margin-top: -75px;
+	border: solid 2px #bbb;
+	background-color: #FAFAF5;
+	padding: 23px;
+	text-align: center;
+	color: #666;
+}
+
+#loading img {
+	width: 100px;
+}
+
+#map {
+	height: 100%;
+}
+
+#offline, #online {
+	border: 1px solid #F76C60;
+	background: #FFF9F9;
+	position: absolute;
+	margin-left: -60px;
+	text-align: center;
+	line-height: 40px;
+	margin-top: 10px;
+	color: #F76C60;
+	width: 120px;
+	left: 50%;
+	top: 0;
+}
+
+#online {
+	border: 1px solid #26B110;
+	background: #F2FFF0;
+	color: #26B110;
+}
+
+.primaryDataHolder, .adminPanel, .manageButton {
+	width: 250px;	/* js must follow this value */
+}
+
+.infoWindow {
+	margin-bottom: 8px;
+	overflow-wrap: break-word;
+	word-wrap: break-word;
+}
+
+.primaryDataHolder .title {
+	position: relative;
+	line-height: 25px;
+}
+
+.restoIcon {
+	width: 15px;
+	border: 1px solid #315678;
+	background: #F6FBFF;
+	padding: 2px;
+	position: absolute;
+	top: 1px;
+	left: 0;
+}
+
+.analyticsHolder {
+	position: relative;
+	margin-top: 25px;
+	height: 225px;
+}
+
+.analyticsHolder strong {
+	font-size: 14px;
+}
+
+.legend {
+	top: 0;
+	right: 0;
+	margin: 0;
+	padding: 0;
+	font-size: 11px;
+	position: absolute;
+}
+
+.legend li {
+	list-style-type: none;
+}
+
+.analyticsChart {
+	margin-top: 8px;
+}
+
+.manageButton {
+	text-align: right;
+	color: #315678;
+}
+
+.manageButton > span > span{
+	border: 1px solid #315678;
+	padding: 0 3px;
+}
+
+.adminPanel {
+	border-left: 1px solid #ccc;
+	padding-left: 26px;
+	position: absolute;
+	overflow: auto;
+	height: 100%;
+	left: 275px;
+	top: 0;
+}
+
+.adminPanel input {
+	border: 1px solid #ccc;
+	padding: 4px;
+}
+
+.adminTable{
+	padding-top: 15px;
+}
+
+.adminTable table {
+	padding-top: 8px;
+	width: 50px; /* using a small width to compress all contents */
+}
+
+.adminHeader{
+	font-size: 11px;
+}
+
+.adminTable input {
+	width: 62px;
+}
+
+.adminTable td {
+	position: relative;
+}
+
+.adminTable td a {
+	position: absolute;
+	background-color: #F76C60;
+	border-radius: 15px;
+	text-align: center;
+	line-height: 15px;
+	font-size: 14px;
+	display: none;
+	height: 15px;
+	color: #fff;
+	width: 15px;
+	left: -18px;
+	top: 6px;
+}
+
+.validationError {
+	border: 1px solid #f77 !important;
+}
+
+.adminAddNew {
+	font-size: 12px;
+	float: right;
+	padding: 5px 20px;
+}
+
+.adminSubmit {
+	display: none;
+}
+
+
+
+
+
+/* offline css */
+
+
+.offlineContactInfoBlock img, .loadingContactInfoBlock img {
+	width: 220px;
+}
+
+.offlineRatingDataBlock img {
+	width: 130px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
