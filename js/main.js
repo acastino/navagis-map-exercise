@@ -354,6 +354,7 @@
 				}, 2000);
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
+				_root.nearbySearch.checkForDetails();
 			},
 			offline: function(){
 				console.warn('offline');
@@ -469,6 +470,11 @@
 						_parent.cleanUpSequence(itemData);
 					});
 				}
+			},
+			checkForDetails: function(){
+				// used only is the user clicks on an item while offline then suddenly goes online --item should get details and update screen
+				if(!this.currentItem) return;
+				this.getItemDetails.queryService(this.currentItem);
 			}
 		},
 		
