@@ -1,6 +1,6 @@
 /*
 
-	You are NOT authorized to copy, distribute or publish any portion of this script.
+	You may not copy, distribute or publish any portion of this script.
 	
 	Created for Navagis, Inc.
 	by: a.castino@gmail.com
