@@ -172,7 +172,13 @@
 					}, 1000);
 				});
 			},
-			filtersRowTemplate: $('.filterOptions div').remove()
+			filtersRowTemplate: $('.filterOptions div').remove(),
+			preloadOfflineImages: function(){
+				$([ 'images/loading-contact-details.gif',
+					'images/offline-rating-data.gif',
+					'images/loading-contact-details.gif',
+				]).each(function(){ $('<img/>')[0].src=this });
+			}
 		},
 		
 		mapHelper: {
@@ -375,7 +381,7 @@
 				this.isOnline = true;
 				$('#offline').fadeOut();
 				$('#online').css({ top: 0, opacity: 1 });
-				$('#map').animate({ opacity: 1 });
+				$('#map, #filters').animate({ opacity: 1 });
 				setTimeout(function(){
 					$('#online').animate({ top:'-100px', opacity:0 });
 				}, 2000);
@@ -387,7 +393,7 @@
 				console.warn('offline');
 				this.isOnline = false;
 				$('#offline').fadeIn();
-				$('#map').animate({ opacity: 0.6 });
+				$('#map, #filters').animate({ opacity: 0.6 });
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
 			},
