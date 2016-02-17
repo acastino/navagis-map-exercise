@@ -118,6 +118,20 @@ html, body {
 	color: #26B110;
 }
 
+#preloadImages {
+	display: none;
+}
+
+
+
+
+
+
+
+
+
+
+
 .primaryDataHolder, .adminPanel, .manageButton {
 	width: 250px;	/* js must follow this value */
 }
