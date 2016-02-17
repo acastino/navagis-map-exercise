@@ -290,8 +290,8 @@
 					_root.analyticsHelper.updateChart(currentItem);
 				},
 				updateViewOnlySpecialtyFood: function(currentItem){
+					var specialtyDom = $('.specialty');
 					var specialtyFood = currentItem.backendData.foodSpecialty;
-					var specialtyDom = $('.specialty').show();
 					specialtyDom.find('strong').text(specialtyFood);
 					if(specialtyFood) specialtyDom.show();
 					else specialtyDom.hide();
