@@ -387,7 +387,8 @@
 				console.warn('offline');
 				this.isOnline = false;
 				$('#offline').fadeIn();
-				$('#map, #filters').animate({ opacity: 0.6 });
+				$('#map').animate({ opacity: 0.6 });
+				$('#filters').animate({ opacity: 0.8 });
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
 			},
