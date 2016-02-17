@@ -149,6 +149,7 @@
 				_root.nearbySearch.init();
 				_root.loading.delayedHiding(2);
 				_root.loading.showHideFilters();
+				_root.loading.preloadOfflineImages();
 			});
 		},
 		
@@ -174,7 +175,7 @@
 			},
 			filtersRowTemplate: $('.filterOptions div').remove(),
 			preloadOfflineImages: function(){
-				$([ 'images/loading-contact-details.gif',
+				$([	'images/loading-contact-details.gif',
 					'images/offline-rating-data.gif',
 					'images/loading-contact-details.gif',
 				]).each(function(){ $('<img/>')[0].src=this });
