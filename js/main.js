@@ -136,6 +136,7 @@
 				_root.mapHelper.init();
 				_root.nearbySearch.init();
 				_root.loading.delayedHiding(2);
+				_root.loading.showHideFilters();
 			});
 		},
 		
@@ -145,7 +146,21 @@
 			delayedHiding: function(secs){
 				secs = secs*1;
 				setTimeout(this.hide, secs*1000)
-			}
+			},
+			filterHoverTimeout: null,
+			showHideFilters: function(){
+				var _parent = this;
+				$('#filters').mouseover(function(){
+					if(_parent.filterHoverTimeout) clearTimeout(_parent.filterHoverTimeout);
+					$(this).find('.filterOptions').show();
+				}).mouseout(function(){
+					var _this = this;
+					_parent.filterHoverTimeout=setTimeout(function(){
+						$(_this).find('.filterOptions').hide();
+					}, 1000);
+				});
+			},
+			filtersRowTemplate: $('.filterOptions div').remove()
 		},
 		
 		mapHelper: {
@@ -243,10 +258,10 @@
 					};
 					
 					var currentItem = _root.nearbySearch.currentItem;
-					if( currentItem && currentItem.noDetails ){
-						loading();
-					} else if( _root.eventsHelper.isOnline ){
-						display();
+					if( _root.eventsHelper.isOnline ) {
+						if(currentItem && currentItem.detailsResult)
+							display();
+						else loading();
 					} else {
 						offline();
 					}
@@ -394,27 +409,103 @@
 								var itemData = { index:i, place:place, marker:marker, noDetails:true };
 								_root.backendHelper.mergeWithMapsData(itemData);
 								_parent.resultsArray.push(itemData);
-								_parent.addToRestoTypes(place.types);
+								_parent.addToRestoTypes(place.types, itemData);
 								_root.eventsHelper.startListening(marker, 'click', function(){
 									_parent.markerClickHandler(itemData);
 								});
 							})(results[i], i);
 						}
 						if(pagination.hasNextPage) pagination.nextPage();
-						else console.info('total results collected: ', _parent.resultsArray.length);
+						else {
+							console.info('total results collected: ', _parent.resultsArray.length);
+							_parent.filtersList.updateDisplay();
+						}
 		//				_parent.getItemDetails.startSequence();
 					} else console.error(status);
 				});
 			},
-			addToRestoTypes: function(types){
+			addToRestoTypes: function(types, itemData){
 				for(var i=0; i<types.length; i++){
 					var found=false, type=types[i];
 					for(var j=0; j<this.restoTypes.length; j++){
-						if(type==this.restoTypes[j]) {
+						if(type==this.restoTypes[j].name) {
 							found = !found; break;
 						}
 					}
-					if(!found) this.restoTypes.push(type);
+					if(found) this.restoTypes[j].items.push(itemData);
+					else this.restoTypes.push({ name:type, items:[itemData] });
+				}
+			},
+			getRestoTypeNames: function(){
+				var names = [];
+				for(var i=0; i< this.restoTypes.length; i++){
+					names.push(this.restoTypes[i].name+','+i);
+				}
+				return names;
+			},
+			filtersList: {
+				updateDisplay: function(){
+					var filtersHolder = $('.filterOptions').html('');
+					var rowTemplate = _root.loading.filtersRowTemplate;
+					var restoTypes = _root.nearbySearch.getRestoTypeNames().sort();
+					for(var i=0; i<restoTypes.length; i++){
+						var cloneCopy = rowTemplate.clone();
+						filtersHolder.append(cloneCopy);
+						(this.handleUI)(restoTypes[i],cloneCopy);
+					}
+					$('#filters').show();
+				},
+				handleUI: function(restoType, $elem){
+					var _parent = this;
+					var restoTypeArr = restoType.split(',');
+					var restoTypeId = restoTypeArr[1];
+					var restoCount = _root.nearbySearch.restoTypes[restoTypeId].items.length;
+					var cleanedName = this.fixTitle(restoTypeArr[0]);
+					$elem.find('input').attr('value', restoTypeId);
+					$elem.find('span').html(cleanedName);
+					$elem.find('em').html('('+restoCount+')');
+					$elem.click(function(){
+						$(this).find('input').trigger('click');
+					});
+					$elem.find('input').click(function(event){
+						event.stopPropagation();
+						_parent.applySelected();
+					});
+				},
+				fixTitle: function(val){
+					var outArr = [];
+					var valArr = val.split('_');
+					for(var i=0; i<valArr.length; i++){
+						outArr.push( this.capitalize(valArr[i]) );
+					}
+					var output = outArr.join(' ');
+					output = output.replace(/of/i, 'of');
+					return output;
+				},
+				capitalize: function(val){
+					return val.charAt(0).toUpperCase()+val.substr(1).toLowerCase();
+				},
+				applySelected: function(){
+					var _parent = this;
+					this.hideAllMarkers();
+					var infoWindow = _root.mapHelper.infoWindow;
+					if( infoWindow.instance ) infoWindow.instance.close();
+					$('.filterOptions input:checked').each(function(){
+						var restoIndex = this.value;
+						var restoItems = _root.nearbySearch.restoTypes[restoIndex].items;
+						for(var i=0; i<restoItems.length; i++){
+							_parent.showHideSingleMarker(restoItems[i].marker, true);
+						}
+					});
+				},
+				hideAllMarkers: function(){
+					var allResults = _root.nearbySearch.resultsArray;
+					for(var i=0; i<allResults.length; i++){
+						this.showHideSingleMarker(allResults[i].marker, false);
+					}
+				},
+				showHideSingleMarker: function(marker, target){
+					marker.setVisible(target);
 				}
 			},
 			markerClickHandler: function(itemData){

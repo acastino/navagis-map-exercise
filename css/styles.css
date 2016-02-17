@@ -34,6 +34,70 @@ html, body {
 	height: 100%;
 }
 
+
+
+
+#filters {
+	position: absolute;
+	top: 0;
+	left: 100px;
+	margin: 10px;
+	font-family: "Roboto";
+	font-size: 11px;
+	border-radius: 2px;
+	display: none;
+}
+
+#filters .title {
+	cursor: pointer;
+	background: #fff;
+	box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
+	width: 95px;
+	padding: 8px;
+	text-align: center;
+	color: rgb(86,86,86);
+	position: relative;
+}
+
+#filters .title:hover {
+	color: #000;
+	background: rgb(235,235,235);
+}
+
+#filters .filterOptions {
+	background: #fff;
+	box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
+	display: none;
+	min-width: 130px;
+	padding: 1px;
+}
+
+#filters .filterOptions div {
+	margin: 1px;
+	padding: 5px;
+	cursor: pointer;
+	padding-right: 10px;
+}
+
+#filters .filterOptions div:hover {
+	background: rgb(235,235,235);
+}
+
+#filters .filterOptions input {
+	margin-right: 8px;
+}
+
+#filters .filterOptions em {
+	font-size: 10px;
+	color: #999;
+}
+
+
+
+
+
+
+
 #offline, #online {
 	border: 1px solid #F76C60;
 	background: #FFF9F9;
