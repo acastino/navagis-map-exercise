@@ -576,7 +576,7 @@
 				}
 			},
 			checkForDetails: function(){
-				// used only is the user clicks on an item while offline then suddenly goes online --item should get details and update screen
+				// used only if the user clicks on an item while offline then suddenly goes online --item should get details and update screen
 				if(!this.currentItem) return;
 				this.getItemDetails.queryService(this.currentItem);
 			}
