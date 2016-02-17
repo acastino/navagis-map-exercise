@@ -1,3 +1,15 @@
+/*
+
+	You are NOT authorized to copy, distribute or publish any portion of this script.
+	
+	Created for Navagis, Inc.
+	by: a.castino@gmail.com
+
+	All Rights, Reserved.
+	
+*/
+
+
 (function(loadingDiv, mapDiv, initMapCoords, initMapCenterObj, mapObj){
 
 	var config = {
