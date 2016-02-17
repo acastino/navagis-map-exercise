@@ -563,7 +563,7 @@
 				queryService: function(itemData){
 					var _parent = this;
 					if(itemData.detailsResult) return;
-				    _root.nearbySearch.serviceObj.getDetails(itemData.place, function(result, status) {
+					_root.nearbySearch.serviceObj.getDetails(itemData.place, function(result, status) {
 						if(status == google.maps.places.PlacesServiceStatus.OK) {
 							console.log('getDetails result: ', result);
 							itemData.noDetails = false;
