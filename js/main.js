@@ -358,27 +358,42 @@
 					this.restoreAdminPageGraphMatrix(currentItem);
 				},
 				restoreSpecialtyFoodTextfieldData: function(currentItem){
-					var input = $('.specialtyFoodInput input')
-					input.val(currentItem.backendData.foodSpecialty);
+					var _parent = this;
+					var insert = function(){
+						var food = currentItem.backendData.foodSpecialty;
+						$('.infoWindow .specialty strong').html(food);
+						$('.specialtyFoodInput input').val(food);
+					};
+					if(currentItem.backendData) insert();
+					else setTimeout(function(){
+						_parent.restoreSpecialtyFoodTextfieldData(currentItem);
+					}, 250);
 				},
 				restoreAdminPageGraphMatrix: function(currentItem){
-					var chartData = currentItem.backendData.chartData;
-					if( chartData.dontGraph ) return;
-					var adminTable = $('.adminTable table');
-					var exampleRow = adminTable.find('tr').last();
-					exampleRow.remove();
-					for(var i=0; i<chartData.labels.length; i++){
-						var cloneCopy = exampleRow.clone();
-						var rowData = [ chartData.labels[i] ];
-						for(var j=0; j<chartData.datasets.length; j++) {
-							rowData.push(chartData.datasets[j][i]);
+					var _parent = this;
+					var insert = function(){
+						var chartData = currentItem.backendData.chartData;
+						if( chartData.dontGraph ) return;
+						var adminTable = $('.adminTable table');
+						var exampleRow = adminTable.find('tr').last();
+						exampleRow.remove();
+						for(var i=0; i<chartData.labels.length; i++){
+							var cloneCopy = exampleRow.clone();
+							var rowData = [ chartData.labels[i] ];
+							for(var j=0; j<chartData.datasets.length; j++) {
+								rowData.push(chartData.datasets[j][i]);
+							}
+							cloneCopy.find('input').each(function(k){
+								var input = $(this).val(rowData[k]);
+							});
+							adminTable.append(cloneCopy);
 						}
-						cloneCopy.find('input').each(function(k){
-							var input = $(this).val(rowData[k]);
-						});
-						adminTable.append(cloneCopy);
-					}
-					window.adminCommands.showHideRedButtons();
+						window.adminCommands.showHideRedButtons();
+					};
+					if(currentItem.backendData) insert();
+					else setTimeout(function(){
+						_parent.restoreAdminPageGraphMatrix(currentItem);
+					}, 250);
 				}
 			},
 			isVisible: function(target, callback){
@@ -397,23 +412,32 @@
 				this.clearCanvas();
 				var chartElem = $('.analyticsChart');
 				var chartElem2D = chartElem.get(0).getContext("2d");
-				var structuredData = this.generateDataStructure(currentItem);
-				var myLineChart = new Chart(chartElem2D).Line(structuredData, {
-					legendTemplate : htmlTemplates.restoInfo.legend()
+				this.generateDataStructure(currentItem, function(structuredData){
+					var myLineChart = new Chart(chartElem2D).Line(structuredData, {
+						legendTemplate : htmlTemplates.restoInfo.legend()
+					});
+					var legendObj = myLineChart.generateLegend();
+					var analyticsHolder = $('.analyticsHolder');
+					var existingLegend = analyticsHolder.find('.legend');
+					if(!existingLegend.length) analyticsHolder.append(legendObj);
+					else existingLegend.replaceWith(legendObj);
 				});
-				var legendObj = myLineChart.generateLegend();
-				var analyticsHolder = $('.analyticsHolder');
-				var existingLegend = analyticsHolder.find('.legend');
-				if(!existingLegend.length) analyticsHolder.append(legendObj);
-				else existingLegend.replaceWith(legendObj);
 			},
 			clearCanvas: function(){
 				var chartElem = $('.analyticsChart');
 				var newCanvasHTML = htmlTemplates.restoInfo.graphCanvas();
 				chartElem.replaceWith(newCanvasHTML);
 			},
-			generateDataStructure: function(currentItem){
+			generateDataStructure: function(currentItem, callback){
+				var _parent = this;
 				var chartStyling = htmlTemplates.chartStyling();
+				if(!currentItem.backendData) {
+				console.warn('no backendData for chart, yet! (retrying)');
+					setTimeout(function(){
+						_parent.generateDataStructure(currentItem, callback);
+					}, 250);
+					return;
+				}
 				var backendChartData = currentItem.backendData.chartData;
 				var outputStructure = { labels: backendChartData.labels, datasets:[] };
 				for(var i=0; i<chartStyling.length; i++){
@@ -425,7 +449,7 @@
 					if( backendDataset ) dataset.data = backendDataset;
 					outputStructure.datasets.push(dataset);
 				}
-				return outputStructure;
+				callback(outputStructure);
 			},
 			graphNumberFixes: function(index, dataset, dontGraph){
 				dataset = dataset || [];
@@ -830,6 +854,7 @@
 					lat: targetLocation.detailsResult.geometry.location.lat(),
 					lng: targetLocation.detailsResult.geometry.location.lng(),
 				});
+				this.domUtils.routeSearchError.hide();
 				this.direction.query({
 					origin: origin,
 					destination: destination,
@@ -838,8 +863,8 @@
 			},
 			finishedSearching: function(result, status){
 				var _main = _root.directionsHelper;
-				console.log('routes: ', result);
-				if (status == google.maps.DirectionsStatus.OK) {
+				console.log('routes: ', result, status);
+				if(status == google.maps.DirectionsStatus.OK) {
 					_main.routesPanelOpened = true;
 					_root.loading.showHideDirectionsWindow(true);
 					var currentItem = _main.currentTarget.detailsResult;
@@ -849,6 +874,9 @@
 					});
 					_main.direction.renderer.setMap(mapObj);
 					_main.direction.renderer.setDirections(result);
+				} else {
+					_main.domUtils.routeSearchError.show(status);
+					_main.domUtils.sectionsHelper.actionButtonsHolder.startReady.show();
 				}
 			},
 			domUtils: {
@@ -862,6 +890,7 @@
 							var panel = $('#directions .featureWindow');
 							var isVisble = panel.is(':visible');
 							if(!isVisble) _main.askForLocation();
+							_parent.routeSearchError.hide();
 						} else {
 							_parent.sectionsHelper.targetLocation.hide();
 							_parent.sectionsHelper.actionButtonsHolder.hide();
@@ -948,6 +977,14 @@
 						hide: function(){
 							$('.actionButtonsHolder').hide();
 						}
+					}
+				},
+				routeSearchError: {
+					hide: function(){
+						$('.routeSearchError').hide();
+					},
+					show: function(msg){
+						$('.routeSearchError').show().find('span').html(msg);
 					}
 				},
 				showHideRoutes: function(shouldShow, data, callback){

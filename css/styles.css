@@ -343,6 +343,15 @@ html, body {
 
 
 
+.routeSearchError {
+	color: #f33;
+	display: none;
+}
+
+
+
+
+
 
 
 .actionButtonsHolder {
