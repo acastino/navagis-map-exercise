@@ -8,63 +8,73 @@
 	<div id="loading">
 		<div><img src="images/loading-3d.gif">Loading...</div>
 	</div>
-	<div id="map">
-		<!-- name: NavagisExampleMap -->
-		<!-- key: AIzaSyB-TMYDSBNvCb_plNLGT-WlnkUxMn3KGUU -->
-		<!-- note: restricted api referrer -->
-	</div>
-	<div id="searching" class="featureButtons">
-		<div class="title"><div class="spinner"></div>Searching...</div>
-	</div>
-	<div id="filters" class="featureButtons">
-		<div class="title">Filter Restaurants</div>
-		<div class="featureWindow">
-			<div><input type="checkbox" checked="checked" name="filtersSelected[]"><span></span>&nbsp;<em></em></div>
+	<div id="mapHolder">
+		<div id="map">
+			<!-- name: NavagisExampleMap -->
+			<!-- key: AIzaSyB-TMYDSBNvCb_plNLGT-WlnkUxMn3KGUU -->
+			<!-- note: restricted api referrer -->
+		</div>
+		<div id="searching" class="featureButtons">
+			<div class="title"><div class="spinner"></div>Searching...</div>
+		</div>
+		<div id="filters" class="featureButtons">
+			<div class="title">Filter Restaurants</div>
+			<div class="featureWindow">
+				<div><input type="checkbox" checked="checked" name="filtersSelected[]"><span></span>&nbsp;<em></em></div>
+			</div>
+		</div>
+		<div id="directions" class="featureButtons">
+			<div class="title"><span>Driving</span> Directions</div>
+			<div class="featureWindow">
+				<div>Travel Mode:
+					<select onchange="directionsCommands.travelModeChanged(this)">
+						<option value="DRIVING" selected>Driving</option>
+						<option value="WALKING">Walking</option>
+					</select>
+				</div>
+				<div class="currentLocation">Starting Location:
+					<div class="spinnerHolder">
+						<div class="spinner">Loading...</div>
+						<div class="denyLocation">Please share your Location to show <span>Driving</span> Directions</div>
+						<div class="noGeolocation">Geolocation is not available on this Browser</div>
+					</div>
+					<div class="addressHolder" onclick="directionsCommands.currentLocation()">
+						<div class="address"></div>
+					</div>
+					<div class="error"><div class="address"></div></div>
+				</div>
+				<div class="targetLocation">Target Location:
+					<div class="targetAddress" onclick="directionsCommands.showTargetPin()">
+						<div class="close">+</div>
+						<div class="name"></div>
+						<div class="address"></div>
+					</div>
+					<div class="noTarget">
+						<div>Please select one of the Pins on the Map.</div>
+					</div>
+				</div>
+				<div class="actionButtonsHolder">
+					<div class="spinnerHolder startEmpty">
+						<div class="spinner"><div></div>Find</div>
+					</div>
+					<div class="spinnerHolder startReady" onclick="directionsCommands.queryDirections()">
+						<div class="spinner"><div></div>Find</div>
+					</div>
+					<div class="spinnerHolder startFinding">
+						<div class="spinner"><div></div>Finding...</div>
+					</div>
+				</div>
+				<div class="clearBoth"></div>
+			</div>
 		</div>
 	</div>
-	<div id="directions" class="featureButtons">
-		<div class="title"><span>Driving</span> Directions</div>
-		<div class="featureWindow">
-			<div>Travel Mode:
-				<select onchange="directionsCommands.travelModeChanged(this)">
-					<option value="driving" selected>Driving</option>
-					<option value="walking">Walking</option>
-				</select>
-			</div>
-			<div class="currentLocation">Starting Location:
-				<div class="spinnerHolder">
-					<div class="spinner">Loading...</div>
-					<div class="denyLocation">Please share your Location to show <span>Driving</span> Directions</div>
-					<div class="noGeolocation">Geolocation is not available on this Browser</div>
-				</div>
-				<div class="addressHolder" onclick="directionsCommands.currentLocation()">
-					<div class="address"></div>
-				</div>
-				<div class="error"><div class="address"></div></div>
-			</div>
-			<div class="targetLocation">Target Location:
-				<div class="targetAddress" onclick="directionsCommands.showTargetPin()">
-					<div class="close">+</div>
-					<div class="name"></div>
-					<div class="address"></div>
-				</div>
-				<div class="noTarget">
-					<div>Please select one of the Pins on the Map.</div>
-				</div>
-			</div>
-			<div class="actionButtonsHolder">
-				<div class="spinnerHolder startEmpty">
-					<div class="spinner"><div></div>Find</div>
-				</div>
-				<div class="spinnerHolder startReady" onclick="directionsCommands.queryDirections()">
-					<div class="spinner"><div></div>Find</div>
-				</div>
-				<div class="spinnerHolder startFinding">
-					<div class="spinner"><div></div>Finding...</div>
-				</div>
-			</div>
-			<div class="clearBoth"></div>
+	<div id="directionsPanel">
+		<div class="routesTitle">
+			<div class="targDestHeader">Route from your Location to:</div>
+			<div class="targDestAddName"><strong></strong></div>
+			<div class="targDestAdd"></div>
 		</div>
+		<div id="routesDisplay"></div>
 	</div>
 	<div id="online">Online</div>
 	<div id="offline">Offline</div>

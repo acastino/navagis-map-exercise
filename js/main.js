@@ -51,7 +51,11 @@
 						'</div>'+
 					'</div>'+
 					
-					'<div><a href="javascript:;" onclick="directionsCommands.openPanel()">Driving Directions</a></div>'+
+					'<div class="directionsLink">'+
+						'<a href="javascript:;" onclick="directionsCommands.openPanel()">'+
+						'<span>'+ window.directionsCommands.travelModeChanged() +'</span> Directions'+
+						'</a>'+
+					'</div>'+
 					
 					'<div class="rating">'+
 						'<p class="onlineRatingDataBlock" style="display:none">'+
@@ -197,11 +201,11 @@
 				$('#searching').hide();
 				$('#directions').show();
 			},
-			showHideDirectionsWindow: function(forcedHide){
+			showHideDirectionsWindow: function(forceHide){
 				var $elem = $('#directions .title');
 				var featureWindow = $elem.next();
 				var isOpen = featureWindow.is(':visible');
-				if(typeof(forcedHide)==='boolean') isOpen=forcedHide;
+				if(typeof(forceHide)==='boolean') isOpen=forceHide;
 				if(isOpen) featureWindow.hide();
 				else featureWindow.show();
 			},
@@ -230,7 +234,8 @@
 				mapObj = new google.maps.Map(mapDiv, { center: initMapCenterObj, zoom: config.initZoomLevel });
 				_root.eventsHelper.startListening(mapObj, 'click', function(){
 					_parent.infoWindow.instance && _parent.infoWindow.instance.close();
-					_root.loading.shouldHideDirectionsWindow();
+					_root.loading.showHideDirectionsWindow(true);
+		//			_root.loading.shouldHideDirectionsWindow();
 				});
 			},
 			genLatLng: function(lat, lng){
@@ -260,6 +265,7 @@
 					this.instance[method].apply(this.instance, args);
 				},
 				makeCenter: function(marker){
+					if(!marker) marker = _root.nearbySearch.currentItem.marker;
 					this.execService('open',mapObj,marker)
 				},
 				compileContent: function(dataSource){
@@ -282,6 +288,7 @@
 								_parent.onlineOfflineDisplayFixes();
 								_parent.onlineOfflineAdminPanelFixes();
 				//				_root.backendHelper.watchServerRowForChanges(currentItem);
+								setTimeout(function(){ _parent.makeCenter(); }, 100);
 							});
 						}
 					};
@@ -411,16 +418,21 @@
 				var outputStructure = { labels: backendChartData.labels, datasets:[] };
 				for(var i=0; i<chartStyling.length; i++){
 					var dataset = $.extend(true, {}, chartStyling[i]);
-					var backendDataset = this.graphNumberFixes(i, backendChartData.datasets[i]);
+					var backendDataset = this.graphNumberFixes(
+						i, backendChartData.datasets[i],
+						backendChartData.dontGraph
+					);
 					if( backendDataset ) dataset.data = backendDataset;
 					outputStructure.datasets.push(dataset);
 				}
 				return outputStructure;
 			},
-			graphNumberFixes: function(index, dataset){
+			graphNumberFixes: function(index, dataset, dontGraph){
+				dataset = dataset || [];
 				var output = [];
 				for(var i=0; i<dataset.length; i++){
 					var value = dataset[i];
+					if( dontGraph ) value = null;
 					if( index==1 ) value = value/100;	// divide Revenue by 100 --to make the graph look more interesting
 					output.push(value);
 				}
@@ -586,7 +598,7 @@
 				console.log('currentItem: ', itemData);
 				this.generateInfoWindow(itemData);
 				this.getItemDetails.queryService(itemData);
-				_root.directionsHelper.updateTargetLocation(itemData);
+				_root.directionsHelper.updateTargetLocation();
 			},
 			generateInfoWindow: function(itemData){
 				var result = itemData.detailsResult || itemData.place;
@@ -629,7 +641,7 @@
 							console.log('getDetails result: ', result);
 							itemData.noDetails = false;
 							itemData.detailsResult = result;
-							_root.directionsHelper.updateTargetLocation(itemData);
+							_root.directionsHelper.updateTargetLocation();
 						} else {
 							console.error(status);
 						}
@@ -648,13 +660,11 @@
 			currentOrigin: null,
 			currentTarget: null,
 			hasAllowedAccess: false,
+			routesPanelOpened: false,
 			init: function(){
 				this.domUtils.init();
 				this.geoCode.init();
 				this.direction.init();
-				
-				
-				
 			},
 			askForLocation: function(){
 				var _parent = this;
@@ -663,7 +673,15 @@
 				navigator.geolocation.getCurrentPosition(function(location){
 					console.log('geolocation: ', location);
 					_parent.hasAllowedAccess = true;
-					_parent.geoCode.query(location);
+					_parent.geoCode.query(location, false, function(data){	// todo: should keep trying if got GEOMETRIC_CENTER?
+						if(!data.error) {
+							if( _parent.geoCode.withinRange(data.results[0]) )
+								_parent.currentOrigin = data.result = data.results[0];
+							else data.error = htmlTemplates.directions.outOfRange;
+						}
+						_parent.domUtils.updateAddressDisplay(data);
+						_parent.direction.isReady();
+					});
 				}, function(error){
 					_parent.hasAllowedAccess = false;
 					_parent.domUtils.sectionsHelper.currentLocation.loading.show('.denyLocation');
@@ -671,17 +689,17 @@
 					_parent.domUtils.sectionsHelper.targetLocation.hide();
 				});
 				_parent.domUtils.sectionsHelper.actionButtonsHolder.hide();
-				_parent.updateTargetLocation();
+				_parent.updateTargetLocation(true);
 			},
 			geoCode: {
 				instance: null,
 				init: function(){
 					this.instance = new google.maps.Geocoder();
 				},
-				query: function(location){
-					var _parent = this;
+				query: function(location, skipInterpolated, callback){
 					var _main = _root.directionsHelper;
-					this.instance.geocode({'location': {
+					var _parent = _main.geoCode;
+					_parent.instance.geocode({'location': {
 						lat: location.coords.latitude,
 						lng: location.coords.longitude
 						/* mactan airport */
@@ -691,19 +709,23 @@
 			//			lat: 10.281418,
 			//			lng: 123.914354
 					}}, function(results, status) {
-						console.log('geocode response: ', results);
 						var data = {};
-						if(status == google.maps.GeocoderStatus.OK) {
-							console.info('address: ', results[0].formatted_address);
-							if( _parent.withinRange(results[0]) )
-								_main.currentOrigin = data.result = results[0];
-							else data.error = htmlTemplates.directions.outOfRange;
-						} else data.error = status;
-						_main.domUtils.updateAddressDisplay(data);
-						_main.direction.isReady();
+						console.log('geocode response: ', status, results);
+						if(status==google.maps.GeocoderStatus.OK) {
+							data.results = results;
+							var locType = results[0].geometry.location_type;
+							console.info(locType+':', results[0].formatted_address);
+							if(skipInterpolated && locType=='RANGE_INTERPOLATED')
+								setTimeout(function(){
+									_parent.query(location, skipInterpolated, callback);
+								}, 2000);
+							else callback(data);
+						} else {
+							data.error = status;
+							callback(data);
+						}
 					});
 				},
-				// todo: keep trying until GEOMETRIC_CENTER || RANGE_INTERPOLATED
 				withinRange: function(result){
 					var currentLatLng = {
 						lat: result.geometry.location.lat(),
@@ -737,7 +759,7 @@
 				});
 				*/
 			},
-			updateTargetLocation: function(){
+			updateTargetLocation: function(skipReplace){
 				var currentItem = _root.nearbySearch.currentItem;
 				if(!currentItem || !currentItem.detailsResult) { // abort and wait for the detailsResult response
 					this.removeTargetLocation();
@@ -747,8 +769,10 @@
 					name: currentItem.detailsResult.name,
 					address: currentItem.detailsResult.formatted_address
 				};
-				this.currentTarget = currentItem;
-				this.domUtils.sectionsHelper.targetLocation.targetAddress.show(data);
+				if(!skipReplace) {
+					this.currentTarget = currentItem;
+					this.domUtils.sectionsHelper.targetLocation.targetAddress.show(data);
+				}
 				this.direction.isReady();
 			},
 			showTargetPinDetails: function(){
@@ -758,6 +782,8 @@
 			removeTargetLocation: function(){
 				_root.directionsHelper.currentTarget=null;
 				this.domUtils.sectionsHelper.targetLocation.noTarget.show();
+				this.domUtils.showHideRoutes(false);
+				this.direction.renderer.setMap(null);
 				this.direction.isReady();
 			},
 			direction: {
@@ -766,11 +792,10 @@
 				init: function(){
 					this.service = new google.maps.DirectionsService();
 					this.renderer = new google.maps.DirectionsRenderer();
-					this.renderer.setMap(mapObj);
+					this.renderer.setPanel($('#routesDisplay').get(0));
 				},
 				isReady: function(){
 					var _main = _root.directionsHelper;
-													// todo: show "start finding" button here but user may be following a path already
 					if( _main.currentOrigin && _main.currentTarget ) {
 						_main.domUtils.sectionsHelper.actionButtonsHolder.startReady.show();
 					} else {
@@ -781,6 +806,15 @@
 					var _parent = this;
 					this.service.route(request, callback);
 				}
+			},
+			getTravelMode: function(){
+				var mode = directionsCommands.travelModeChanged(null, true);
+				return google.maps.TravelMode[mode];
+			},
+			travelModeChanged: function(value){
+				this.domUtils.showHideRoutes(false);
+				this.direction.renderer.setMap(null);
+				this.direction.isReady();
 			},
 			startSearching: function(){
 				var startLocation = this.currentOrigin;
@@ -799,31 +833,23 @@
 				this.direction.query({
 					origin: origin,
 					destination: destination,
-					travelMode: google.maps.TravelMode.DRIVING
+					travelMode: this.getTravelMode()
 				}, this.finishedSearching);
 			},
 			finishedSearching: function(result, status){
-				
-				
-				// show & update action buttons
-				// else: hide entire row
-				
-				
-				
 				var _main = _root.directionsHelper;
-console.log('response: ', arguments);
+				console.log('routes: ', result);
 				if (status == google.maps.DirectionsStatus.OK) {
-				  _main.direction.renderer.setDirections(result);
+					_main.routesPanelOpened = true;
+					_root.loading.showHideDirectionsWindow(true);
+					var currentItem = _main.currentTarget.detailsResult;
+					_main.domUtils.showHideRoutes(true, {
+						name: currentItem.name,
+						address: currentItem.formatted_address
+					});
+					_main.direction.renderer.setMap(mapObj);
+					_main.direction.renderer.setDirections(result);
 				}
-				
-				
-				
-				
-				
-				
-				
-				
-				
 			},
 			domUtils: {
 				hasGeolocation: !!window.navigator && !!navigator.geolocation,
@@ -832,8 +858,11 @@ console.log('response: ', arguments);
 					var _main = _root.directionsHelper;
 					$('#directions .title').click(function(){
 						mapObj.clickedOne = false;
-						if(_parent.hasGeolocation) _main.askForLocation();
-						else {
+						if(_parent.hasGeolocation) {
+							var panel = $('#directions .featureWindow');
+							var isVisble = panel.is(':visible');
+							if(!isVisble) _main.askForLocation();
+						} else {
 							_parent.sectionsHelper.targetLocation.hide();
 							_parent.sectionsHelper.actionButtonsHolder.hide();
 							_parent.sectionsHelper.currentLocation.loading.show('.noGeolocation');
@@ -920,6 +949,18 @@ console.log('response: ', arguments);
 							$('.actionButtonsHolder').hide();
 						}
 					}
+				},
+				showHideRoutes: function(shouldShow, data, callback){
+					data = data || {};
+					var docWidth = $(document).width();
+					var panelWidth = $('#directionsPanel').width()+21;
+					var mapTarg = shouldShow? (docWidth-panelWidth)+'px' : '100%';
+					var panelTarg = shouldShow? 0 : '-'+panelWidth+'px';
+					var settings = callback?{complete:callback}:{};
+					$('.targDestAddName strong').html(data.name);
+					$('.targDestAdd').html(data.address);
+					$('#mapHolder').animate({width: mapTarg});
+					$('#directionsPanel').animate({left: panelTarg}, settings);
 				}
 			}
 		},
@@ -956,7 +997,9 @@ console.log('response: ', arguments);
 				var firebaseUrl = config.firebase.baseUrl;
 				var serverStatusUrl = config.firebase.stateUrl;
 				this.dbInstance = new Firebase(firebaseUrl);
-				this.stateChecker.init(firebaseUrl+serverStatusUrl,callback);
+				this.stateChecker.init(firebaseUrl+serverStatusUrl,function(){
+					setTimeout(callback, 500);
+				});
 			},
 			getData: function(id, callback){
 				this.dbInstance.child(id).on("value", function(snapshot) {
@@ -1014,13 +1057,17 @@ console.log('response: ', arguments);
 			if($('#directions .featureWindow').is(':visible')) return;
 			$('#directions .title').trigger('click');
 		},
-		travelModeChanged: function(elem){
+		travelModeChanged: function(elem, raw){
+			elem = elem || '.featureWindow select';
 			var value = $(elem).val();
+			if(raw) return value;
 			value = _root.loading.capitalize(value);
-			$('#directions .title span, .currentLocation .denyLocation span').html(value);
-			
-			// todo: remove routes?
-			
+			$(	'#directions .title span,'+
+				'.currentLocation .denyLocation span,'+
+				'.infoWindow .directionsLink span'
+			).html(value);
+			_root.directionsHelper.travelModeChanged(value);
+			return value;
 		},
 		currentLocation: function(){
 			_root.directionsHelper.setCenterCurrentLocation();
