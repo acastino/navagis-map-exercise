@@ -13,10 +13,57 @@
 		<!-- key: AIzaSyB-TMYDSBNvCb_plNLGT-WlnkUxMn3KGUU -->
 		<!-- note: restricted api referrer -->
 	</div>
-	<div id="filters">
+	<div id="searching" class="featureButtons">
+		<div class="title"><div class="spinner"></div>Searching...</div>
+	</div>
+	<div id="filters" class="featureButtons">
 		<div class="title">Filter Restaurants</div>
-		<div class="filterOptions">
+		<div class="featureWindow">
 			<div><input type="checkbox" checked="checked" name="filtersSelected[]"><span></span>&nbsp;<em></em></div>
+		</div>
+	</div>
+	<div id="directions" class="featureButtons">
+		<div class="title"><span>Driving</span> Directions</div>
+		<div class="featureWindow">
+			<div>Travel Mode:
+				<select onchange="directionsCommands.travelModeChanged(this)">
+					<option value="driving" selected>Driving</option>
+					<option value="walking">Walking</option>
+				</select>
+			</div>
+			<div class="currentLocation">Starting Location:
+				<div class="spinnerHolder">
+					<div class="spinner">Loading...</div>
+					<div class="denyLocation">Please share your Location to show <span>Driving</span> Directions</div>
+					<div class="noGeolocation">Geolocation is not available on this Browser</div>
+				</div>
+				<div class="addressHolder" onclick="directionsCommands.currentLocation()">
+					<div class="address"></div>
+				</div>
+				<div class="error"><div class="address"></div></div>
+			</div>
+			<div class="targetLocation">Target Location:
+				<div class="targetAddress" onclick="directionsCommands.showTargetPin()">
+					<div class="close">+</div>
+					<div class="name"></div>
+					<div class="address"></div>
+				</div>
+				<div class="noTarget">
+					<div>Please select one of the Pins on the Map.</div>
+				</div>
+			</div>
+			<div class="actionButtonsHolder">
+				<div class="spinnerHolder startEmpty">
+					<div class="spinner"><div></div>Find</div>
+				</div>
+				<div class="spinnerHolder startReady" onclick="directionsCommands.queryDirections()">
+					<div class="spinner"><div></div>Find</div>
+				</div>
+				<div class="spinnerHolder startFinding">
+					<div class="spinner"><div></div>Finding...</div>
+				</div>
+			</div>
+			<div class="clearBoth"></div>
 		</div>
 	</div>
 	<div id="online">Online</div>
@@ -25,13 +72,13 @@
 		<img src="images/loading-contact-details.gif">
 		<img src="images/offline-rating-data.gif">
 		<img src="images/offline-contact-info.gif">
-		<img src="images/loading-3d.gif">
+		<img src="images/loading_spinner.gif">
 	</div>
 	<script type="text/javascript" src="https://cdn.firebase.com/js/client/2.4.0/firebase.js"></script>
 	<script type="text/javascript" src="js/jquery.js"></script>
 	<script type="text/javascript" src="js/jquery-ui.js"></script>
 	<script type="text/javascript" src="js/chart.min.js"></script>
 	<script type="text/javascript" src="js/main.js"></script>
-	<script src="//maps.googleapis.com/maps/api/js?key=AIzaSyB-TMYDSBNvCb_plNLGT-WlnkUxMn3KGUU&libraries=places&callback=exerciseObj.init&signed_in=true" async defer></script>
+	<script src="//maps.googleapis.com/maps/api/js?key=AIzaSyB-TMYDSBNvCb_plNLGT-WlnkUxMn3KGUU&libraries=places&callback=exerciseObj.init" async defer></script>
 </body>
 </html>

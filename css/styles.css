@@ -30,6 +30,14 @@ html, body {
 	width: 100px;
 }
 
+
+
+
+
+
+
+
+
 #map {
 	height: 100%;
 }
@@ -37,7 +45,14 @@ html, body {
 
 
 
-#filters {
+
+
+
+
+
+
+
+.featureButtons {
 	position: absolute;
 	top: 0;
 	left: 100px;
@@ -48,8 +63,7 @@ html, body {
 	display: none;
 }
 
-#filters .title {
-	cursor: pointer;
+.featureButtons .title {
 	background: #fff;
 	box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
 	width: 95px;
@@ -59,12 +73,14 @@ html, body {
 	position: relative;
 }
 
-#filters .title:hover {
+#filters .title:hover,
+#directions .title:hover {
 	color: #000;
 	background: rgb(235,235,235);
+	cursor: pointer;
 }
 
-#filters .filterOptions {
+.featureButtons .featureWindow {
 	background: #fff;
 	box-shadow: rgba(0, 0, 0, 0.298039) 0px 1px 4px -1px;
 	display: none;
@@ -72,25 +88,269 @@ html, body {
 	padding: 1px;
 }
 
-#filters .filterOptions div {
+
+
+
+
+
+
+
+
+
+#searching .title {
+	padding-left: 25px;
+	width: 70px;
+	cursor: default;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+#filters .featureWindow div {
 	margin: 1px;
 	padding: 5px;
 	cursor: pointer;
 	padding-right: 10px;
 }
 
-#filters .filterOptions div:hover {
+#filters .featureWindow div:hover {
 	background: rgb(235,235,235);
 }
 
-#filters .filterOptions input {
+#filters .featureWindow input {
 	margin-right: 8px;
 }
 
-#filters .filterOptions em {
+#filters .featureWindow em {
 	font-size: 10px;
 	color: #999;
 }
+
+
+
+
+
+
+
+
+
+#directions {
+	right: 0;
+	left: auto;
+}
+
+#directions .title {
+	float: right;
+}
+
+#directions .featureWindow {
+	clear: both;
+	cursor: default;
+	width: 175px;
+	padding: 5px 0;
+}
+
+#directions .featureWindow > div {
+	margin: 1px;
+	padding: 5px 10px;
+}
+
+.targetLocation {
+	display: none;
+}
+
+.targetLocation > div,
+.currentLocation > div,
+.actionButtonsHolder > div {
+	padding: 5px 10px;
+	background: #eee;
+	border-radius: 10px;
+	margin-top: 4px;
+	position: relative;
+}
+
+.targetLocation > div:hover {
+	color: #999;
+	cursor: pointer;
+}
+
+.targetLocation > div > div,
+.currentLocation > div > div {
+	margin: 4px 0;
+}
+
+.targetLocation .name {
+	font-weight: bold;
+}
+
+.targetLocation .close {
+	position: absolute;
+	display: none;
+	width: 18px;
+	line-height: 18px;
+	text-align: center;
+	background: #888;
+	border-radius: 18px;
+	font-size: 14px;
+	color: #eee;
+	right: 0;
+	top: -4px;
+	transform: rotate(45deg);
+	border: 5px solid #eee;
+}
+
+.targetLocation .close:hover {
+	background: #555;
+}
+
+.currentLocation .addressHolder,
+.currentLocation .error {
+	display: none;
+}
+
+.currentLocation .error {
+	padding: 9px 10px;
+}
+
+
+
+
+
+
+
+
+
+
+#searching .spinner,
+.currentLocation .spinner,
+.actionButtonsHolder .spinner
+{
+	background: url(../images/loading_spinner.gif) no-repeat;
+	background-size: 28px;
+	width: 25px;
+	height: 25px;
+	position: absolute;
+	top: 0;
+	left: 5px;
+}
+
+.currentLocation .denyLocation,
+.currentLocation .noGeolocation {
+	color: #f33;
+	display: none;
+}
+
+.currentLocation .spinnerHolder,
+.actionButtonsHolder .spinnerHolder {
+	background: #fff;
+	border: 1px solid #ddd;
+}
+
+.currentLocation .spinner,
+.actionButtonsHolder .spinner {
+	position: relative;
+	line-height: 30px;
+	left: -5px;
+	padding-left: 28px;
+	margin: 0;
+	top: -2px;
+}
+
+
+
+
+
+
+.addressHolder, .noTarget, .currentLocation .error {
+	background: #fff !important;
+	border: 1px solid #ddd !important;
+}
+
+.currentLocation .addressHolder {
+	cursor: pointer;
+}
+
+.currentLocation .addressHolder:hover {
+	background: #eee !important;
+	border: 1px solid #eee !important;
+}
+
+.noTarget:hover {
+	color: #000 !important;
+	cursor: default !important;
+}
+
+
+
+
+
+
+
+
+
+
+.actionButtonsHolder {
+	display: none;
+}
+
+.actionButtonsHolder .spinnerHolder {
+	float: right;
+	padding: 2px 12px;
+	margin-top: 0;
+}
+
+.startEmpty .spinner {
+	background: #fff;
+	padding-left: 10px;
+}
+
+.startReady {
+	background: #3194FD !important;
+	border: 1px solid #fff !important;
+	cursor: pointer;
+}
+
+.startReady .spinner {
+	padding-left: 10px;
+	background: inherit;
+	color: #fff;
+}
+
+.startReady:hover {
+	background: #0b81ff !important;
+}
+
+.startFinding {
+	padding-right: 30px !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+.clearBoth {
+	clear: both;
+}
+
+.error {
+	color: #f33;
+}
+
 
 
 
@@ -121,6 +381,9 @@ html, body {
 #preloadImages {
 	display: none;
 }
+
+
+
 
 
 
@@ -266,13 +529,27 @@ html, body {
 /* offline css */
 
 
-.offlineContactInfoBlock img, .loadingContactInfoBlock img {
+.loadingContactInfoBlock img {
+	width: 40px;
+}
+
+.offlineContactInfoBlock img {
 	width: 220px;
 }
 
 .offlineRatingDataBlock img {
 	width: 130px;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 

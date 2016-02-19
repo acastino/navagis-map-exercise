@@ -14,7 +14,7 @@
 
 	var config = {
 		initZoomLevel: 15,
-		searchRadius: 5000,	//meters	//maxlimit: 50000
+		searchRadius: 5500,	//meters	//maxlimit: 50000
 		infoWindowSize: {
 			collapsed: 250,		//px	//ensure this value is the same in css
 			expanded: 525
@@ -47,9 +47,11 @@
 							'<img onclick="infoWindowCommands.currentlyOffline()" src="images/offline-contact-info.gif">'+
 						'</div>'+
 						'<div class="loadingContactInfoBlock" style="display:none">'+
-							'<img src="images/loading-contact-details.gif" title="Loading Contact Details">'+
+							'<img src="images/loading_spinner.gif">'+
 						'</div>'+
 					'</div>'+
+					
+					'<div><a href="javascript:;" onclick="directionsCommands.openPanel()">Driving Directions</a></div>'+
 					
 					'<div class="rating">'+
 						'<p class="onlineRatingDataBlock" style="display:none">'+
@@ -138,6 +140,9 @@
 		            pointHighlightStroke: "rgba(151,187,205,1)",
 		        }
 		    ];
+		},
+		directions: {
+			outOfRange: 'You may need to be within '+ config.searchRadius +' meters from the City center.'
 		}
 	};
 
@@ -147,8 +152,9 @@
 			_root.backendHelper.waitDatabase(function(){
 				_root.mapHelper.init();
 				_root.nearbySearch.init();
+				_root.directionsHelper.init();
 				_root.loading.delayedHiding(2);
-				_root.loading.showHideFilters();
+				_root.loading.showHideFeatureWindows();
 			});
 		},
 		
@@ -159,20 +165,62 @@
 				secs = secs*1;
 				setTimeout(this.hide, secs*1000)
 			},
-			filterHoverTimeout: null,
-			showHideFilters: function(){
+			showHideFeatureWindows: function(){
 				var _parent = this;
 				$('#filters').mouseover(function(){
-					if(_parent.filterHoverTimeout) clearTimeout(_parent.filterHoverTimeout);
-					$(this).find('.filterOptions').show();
+					if(this.hoverTimeout) clearTimeout(this.hoverTimeout);
+					$(this).find('.featureWindow').show();
 				}).mouseout(function(){
 					var _this = this;
-					_parent.filterHoverTimeout=setTimeout(function(){
-						$(_this).find('.filterOptions').hide();
+					this.hoverTimeout=setTimeout(function(){
+						$(_this).find('.featureWindow').hide();
 					}, 1000);
 				});
+				$('#directions .title').click(this.showHideDirectionsWindow);
+				$('#directions .targetLocation > div').mouseover(function(){
+					$(this).find('.close').show();
+				}).mouseout(function(){
+					$(this).find('.close').hide();
+				});
 			},
-			filtersRowTemplate: $('.filterOptions div').remove()
+			capitalize: function(val){
+				return val.charAt(0).toUpperCase()+val.substr(1).toLowerCase();
+			},
+			filtersRowTemplate: $('#filters .featureWindow div').remove(),
+			searchStarted: function(){
+				$('#filters').hide();
+				$('#searching').show();
+				$('#directions').hide();
+			},
+			searchEnded: function(){
+				$('#filters').show();
+				$('#searching').hide();
+				$('#directions').show();
+			},
+			showHideDirectionsWindow: function(forcedHide){
+				var $elem = $('#directions .title');
+				var featureWindow = $elem.next();
+				var isOpen = featureWindow.is(':visible');
+				if(typeof(forcedHide)==='boolean') isOpen=forcedHide;
+				if(isOpen) featureWindow.hide();
+				else featureWindow.show();
+			},
+			shouldHideDirectionsWindow: function(){
+				var _parent = this;
+				var hideNow = function(){
+					mapObj.clickedOne = false;
+					_parent.showHideDirectionsWindow(true);
+				};
+				if( mapObj.clickedOne ) {
+					mapObj.clickedOne = false;
+					hideNow();
+				} else {
+					mapObj.clickedOne = true;
+					setTimeout(function(){
+						mapObj.clickedOne = false;
+					}, 3000);
+				}
+			}
 		},
 		
 		mapHelper: {
@@ -182,6 +230,7 @@
 				mapObj = new google.maps.Map(mapDiv, { center: initMapCenterObj, zoom: config.initZoomLevel });
 				_root.eventsHelper.startListening(mapObj, 'click', function(){
 					_parent.infoWindow.instance && _parent.infoWindow.instance.close();
+					_root.loading.shouldHideDirectionsWindow();
 				});
 			},
 			genLatLng: function(lat, lng){
@@ -240,7 +289,7 @@
 				onlineOfflineDisplayFixes: function(){
 				
 					var loading = function(){
-						$('.loadingContactInfoBlock').hide();
+						$('.loadingContactInfoBlock').show();
 						
 						$('.onlineContactInfoBlock').hide();
 						$('.offlineContactInfoBlock').hide();
@@ -290,6 +339,7 @@
 					_root.analyticsHelper.updateChart(currentItem);
 				},
 				updateViewOnlySpecialtyFood: function(currentItem){
+					if(!currentItem.backendData) return;
 					var specialtyDom = $('.specialty');
 					var specialtyFood = currentItem.backendData.foodSpecialty;
 					specialtyDom.find('strong').text(specialtyFood);
@@ -401,6 +451,7 @@
 			serviceObj: null,
 			currentItem: null,
 			init: function(){
+				_root.loading.searchStarted();
 				this.serviceObj = new google.maps.places.PlacesService(mapObj);
 				this.performSearch({
 					location: initMapCenterObj,
@@ -458,7 +509,7 @@
 			},
 			filtersList: {
 				updateDisplay: function(){
-					var filtersHolder = $('.filterOptions').html('');
+					var filtersHolder = $('#filters .featureWindow').html('');
 					var rowTemplate = _root.loading.filtersRowTemplate;
 					var restoTypes = _root.nearbySearch.getRestoTypeNames().sort();
 					for(var i=0; i<restoTypes.length; i++){
@@ -466,7 +517,7 @@
 						filtersHolder.append(cloneCopy);
 						(this.handleUI)(restoTypes[i],cloneCopy);
 					}
-					$('#filters').show();
+					_root.loading.searchEnded();
 				},
 				handleUI: function(restoType, $elem){
 					var _parent = this;
@@ -489,21 +540,18 @@
 					var outArr = [];
 					var valArr = val.split('_');
 					for(var i=0; i<valArr.length; i++){
-						outArr.push( this.capitalize(valArr[i]) );
+						outArr.push( _root.loading.capitalize(valArr[i]) );
 					}
 					var output = outArr.join(' ');
 					output = output.replace(/of/i, 'of');
 					return output;
-				},
-				capitalize: function(val){
-					return val.charAt(0).toUpperCase()+val.substr(1).toLowerCase();
 				},
 				applySelected: function(){
 					var _parent = this;
 					this.hideAllMarkers();
 					var infoWindow = _root.mapHelper.infoWindow;
 					if( infoWindow.instance ) infoWindow.instance.close();
-					$('.filterOptions input:checked').each(function(){
+					$('#filters .featureWindow input:checked').each(function(){
 						var restoIndex = this.value;
 						var restoItems = _root.nearbySearch.restoTypes[restoIndex].items;
 						for(var i=0; i<restoItems.length; i++){
@@ -526,6 +574,7 @@
 				console.log('currentItem: ', itemData);
 				this.generateInfoWindow(itemData);
 				this.getItemDetails.queryService(itemData);
+				_root.directionsHelper.updateTargetLocation(itemData);
 			},
 			generateInfoWindow: function(itemData){
 				var result = itemData.detailsResult || itemData.place;
@@ -568,6 +617,7 @@
 							console.log('getDetails result: ', result);
 							itemData.noDetails = false;
 							itemData.detailsResult = result;
+							_root.directionsHelper.updateTargetLocation(itemData);
 						} else {
 							console.error(status);
 						}
@@ -579,6 +629,285 @@
 				// used only if the user clicks on an item while offline then suddenly goes online --item should get details and update screen
 				if(!this.currentItem) return;
 				this.getItemDetails.queryService(this.currentItem);
+			}
+		},
+		
+		directionsHelper: {
+			currentOrigin: null,
+			currentTarget: null,
+			hasAllowedAccess: false,
+			init: function(){
+				this.domUtils.init();
+				this.geoCode.init();
+				this.direction.init();
+				
+				
+				
+			},
+			askForLocation: function(){
+				var _parent = this;
+				this.currentOrigin = null;
+				this.domUtils.sectionsHelper.currentLocation.loading.show();
+				navigator.geolocation.getCurrentPosition(function(location){
+					console.log('geolocation: ', location);
+					_parent.hasAllowedAccess = true;
+					_parent.geoCode.query(location);
+				}, function(error){
+					_parent.hasAllowedAccess = false;
+					_parent.domUtils.sectionsHelper.currentLocation.loading.show('.denyLocation');
+					_parent.domUtils.sectionsHelper.actionButtonsHolder.hide();
+					_parent.domUtils.sectionsHelper.targetLocation.hide();
+				});
+				_parent.domUtils.sectionsHelper.actionButtonsHolder.hide();
+				_parent.updateTargetLocation();
+			},
+			geoCode: {
+				instance: null,
+				init: function(){
+					this.instance = new google.maps.Geocoder();
+				},
+				query: function(location){
+					var _parent = this;
+					var _main = _root.directionsHelper;
+					this.instance.geocode({'location': {
+						lat: location.coords.latitude,
+						lng: location.coords.longitude
+						/* mactan airport */
+			//			lat: 10.319745,
+			//			lng: 123.984024
+						/* mactan reef (ocean) */
+			//			lat: 10.281418,
+			//			lng: 123.914354
+					}}, function(results, status) {
+						console.log('geocode response: ', results);
+						var data = {};
+						if(status == google.maps.GeocoderStatus.OK) {
+							console.info('address: ', results[0].formatted_address);
+							if( _parent.withinRange(results[0]) )
+								_main.currentOrigin = data.result = results[0];
+							else data.error = htmlTemplates.directions.outOfRange;
+						} else data.error = status;
+						_main.domUtils.updateAddressDisplay(data);
+						_main.direction.isReady();
+					});
+				},
+				withinRange: function(result){
+					var currentLatLng = {
+						lat: result.geometry.location.lat(),
+						lng: result.geometry.location.lng()
+					};
+					var userDistance = this.computeDistance(initMapCoords, currentLatLng);
+					console.info('userDistance: ', userDistance);
+					return userDistance <= config.searchRadius;
+				},
+				computeDistance: function(p1, p2){
+					var rad = function(x){ return x * Math.PI/180 };
+					var R = 6378137; // Earth’s mean radius in meter
+					var dLat = rad(p2.lat - p1.lat);
+					var dLong = rad(p2.lng - p1.lng);
+					var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+						Math.cos(rad(p1.lat)) * Math.cos(rad(p2.lat)) *
+						Math.sin(dLong / 2) * Math.sin(dLong / 2);
+					var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+					var d = R * c;
+					return d; // returns the distance in meter
+				}
+			},
+			setCenterCurrentLocation: function(){
+				if(!this.currentOrigin) return;
+				var location = this.currentOrigin.geometry.location;
+				mapObj.setCenter(location);
+				mapObj.setZoom(18);
+				/*
+				var marker = new google.maps.Marker({
+					map: mapObj, position: location
+				});
+				*/
+			},
+			updateTargetLocation: function(){
+				var currentItem = _root.nearbySearch.currentItem;
+				if(!currentItem || !currentItem.detailsResult) { // abort and wait for the detailsResult response
+					this.removeTargetLocation();
+					return;
+				} 
+				var data = {
+					name: currentItem.detailsResult.name,
+					address: currentItem.detailsResult.formatted_address
+				};
+				this.currentTarget = currentItem;
+				this.domUtils.sectionsHelper.targetLocation.targetAddress.show(data);
+				this.direction.isReady();
+			},
+			showTargetPinDetails: function(){
+				var currentItem = _root.nearbySearch.currentItem;
+				_root.nearbySearch.markerClickHandler(currentItem);
+			},
+			removeTargetLocation: function(){
+				_root.directionsHelper.currentTarget=null;
+				this.domUtils.sectionsHelper.targetLocation.noTarget.show();
+				this.direction.isReady();
+			},
+			direction: {
+				service: null,
+				renderer: null,
+				init: function(){
+					this.service = new google.maps.DirectionsService();
+					this.renderer = new google.maps.DirectionsRenderer();
+					this.renderer.setMap(mapObj);
+				},
+				isReady: function(){
+					var _main = _root.directionsHelper;
+													// todo: show "start finding" button here but user may be following a path already
+					if( _main.currentOrigin && _main.currentTarget ) {
+						_main.domUtils.sectionsHelper.actionButtonsHolder.startReady.show();
+					} else {
+						_main.domUtils.sectionsHelper.actionButtonsHolder.startEmpty.show();
+					}
+				},
+				query: function(request, callback){
+					var _parent = this;
+					this.service.route(request, callback);
+				}
+			},
+			startSearching: function(){
+				var startLocation = this.currentOrigin;
+				var targetLocation = this.currentTarget;
+				if(!startLocation || !targetLocation) return;
+				this.domUtils.sectionsHelper.actionButtonsHolder.startFinding.show();
+				_root.mapHelper.infoWindow.instance.close();
+				var origin = _root.mapHelper.genLatLng({
+					lat: startLocation.geometry.location.lat(),
+					lng: startLocation.geometry.location.lng(),
+				});
+				var destination = _root.mapHelper.genLatLng({
+					lat: targetLocation.detailsResult.geometry.location.lat(),
+					lng: targetLocation.detailsResult.geometry.location.lng(),
+				});
+				this.direction.query({
+					origin: origin,
+					destination: destination,
+					travelMode: google.maps.TravelMode.DRIVING
+				}, this.finishedSearching);
+			},
+			finishedSearching: function(result, status){
+				
+				
+				// show & update action buttons
+				// else: hide entire row
+				
+				
+				
+				var _main = _root.directionsHelper;
+console.log('response: ', arguments);
+				if (status == google.maps.DirectionsStatus.OK) {
+				  _main.direction.renderer.setDirections(result);
+				}
+				
+				
+				
+				
+				
+				
+				
+				
+				
+			},
+			domUtils: {
+				hasGeolocation: !!window.navigator && !!navigator.geolocation,
+				init: function(){
+					var _parent = this;
+					var _main = _root.directionsHelper;
+					$('#directions .title').click(function(){
+						mapObj.clickedOne = false;
+						if(_parent.hasGeolocation) _main.askForLocation();
+						else {
+							_parent.sectionsHelper.targetLocation.hide();
+							_parent.sectionsHelper.actionButtonsHolder.hide();
+							_parent.sectionsHelper.currentLocation.loading.show('.noGeolocation');
+						}
+					});
+					$('.targetLocation .close').click(function(event){
+						event.stopPropagation();
+						_root.directionsHelper.removeTargetLocation();
+						_root.mapHelper.infoWindow.instance.close()
+					});
+				},
+				updateAddressDisplay: function(data){
+					if(data.error) this.sectionsHelper.currentLocation.error(data.error);
+					else this.sectionsHelper.currentLocation.address(data.result.formatted_address);
+				},
+				sectionsHelper: {
+					currentLocation: {
+						loading: {
+							show: function(showThis){
+								showThis = showThis || '.spinner';
+								var spinnerHolder = '.currentLocation .spinnerHolder ';
+								$('.currentLocation .error').hide();
+								$('.currentLocation .addressHolder').hide();
+								$(spinnerHolder).show().children().hide();
+								$(spinnerHolder+showThis).show();
+							}
+						},
+						address: function(value){
+							$('.currentLocation .error').hide();
+							$('.currentLocation .spinnerHolder').hide();
+							$('.currentLocation .addressHolder').show().children().html(value);
+						},
+						error: function(value){
+							$('.currentLocation .spinnerHolder').hide();
+							$('.currentLocation .addressHolder').hide();
+							$('.currentLocation .error').show().html(value);
+						}
+					},
+					targetLocation: {
+						targetAddress: {
+							show: function(data){
+								var targetLocation = $('.targetLocation').show();
+								var targetAddress = targetLocation.find('.targetAddress').show();
+								targetLocation.find('.noTarget').hide();
+								targetAddress.find('.name').html(data.name);
+								targetAddress.find('.address').html(data.address);
+							}
+						},
+						noTarget: {
+							show: function(){
+								var targetLocation = $('.targetLocation').show();
+								targetLocation.find('.targetAddress').hide();
+								targetLocation.find('.noTarget').show();
+							}
+						},
+						hide: function(){ $('.targetLocation').hide() }
+					},
+					actionButtonsHolder: {
+						startEmpty: {
+							show:function(){
+								var actionButtonsHolder = $('.actionButtonsHolder').show();
+								actionButtonsHolder.find('.startFinding').hide();
+								actionButtonsHolder.find('.startReady').hide();
+								actionButtonsHolder.find('.startEmpty').show();
+							}
+						},
+						startReady: {
+							show:function(){
+								var actionButtonsHolder = $('.actionButtonsHolder').show();
+								actionButtonsHolder.find('.startFinding').hide();
+								actionButtonsHolder.find('.startReady').show();
+								actionButtonsHolder.find('.startEmpty').hide();
+							}
+						},
+						startFinding: {
+							show:function(){
+								var actionButtonsHolder = $('.actionButtonsHolder').show();
+								actionButtonsHolder.find('.startFinding').show();
+								actionButtonsHolder.find('.startReady').hide();
+								actionButtonsHolder.find('.startEmpty').hide();
+							}
+						},
+						hide: function(){
+							$('.actionButtonsHolder').hide();
+						}
+					}
+				}
 			}
 		},
 		
@@ -663,6 +992,35 @@
 				*/
 			}
 		}
+		
+	};
+	
+	window.directionsCommands = {
+		openPanel: function(){
+			if(!window.adminCommands.isOnline()) return;
+			if($('#directions .featureWindow').is(':visible')) return;
+			$('#directions .title').trigger('click');
+		},
+		travelModeChanged: function(elem){
+			var value = $(elem).val();
+			value = _root.loading.capitalize(value);
+			$('#directions .title span, .currentLocation .denyLocation span').html(value);
+			
+			// todo: remove routes?
+			
+		},
+		currentLocation: function(){
+			_root.directionsHelper.setCenterCurrentLocation();
+			
+			// todo: show marker? or rely on routeService~
+		},
+		showTargetPin: function(){
+			_root.directionsHelper.showTargetPinDetails();
+		},
+		queryDirections: function(){
+			_root.directionsHelper.startSearching();
+		}
+		
 		
 	};
 	
