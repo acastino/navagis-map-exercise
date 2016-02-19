@@ -131,7 +131,7 @@
 		            pointHighlightStroke: "rgba(220,220,220,1)",
 		        },
 		        {
-		            label: "Revenue (PHP)",
+		            label: "Revenue (PHP x100)",
 		            fillColor: "rgba(151,187,205,0.2)",
 		            strokeColor: "rgba(151,187,205,1)",
 		            pointColor: "rgba(151,187,205,1)",
@@ -395,7 +395,10 @@
 					legendTemplate : htmlTemplates.restoInfo.legend()
 				});
 				var legendObj = myLineChart.generateLegend();
-				chartElem.parent().append(legendObj);
+				var analyticsHolder = $('.analyticsHolder');
+				var existingLegend = analyticsHolder.find('.legend');
+				if(!existingLegend.length) analyticsHolder.append(legendObj);
+				else existingLegend.replaceWith(legendObj);
 			},
 			clearCanvas: function(){
 				var chartElem = $('.analyticsChart');
@@ -408,11 +411,20 @@
 				var outputStructure = { labels: backendChartData.labels, datasets:[] };
 				for(var i=0; i<chartStyling.length; i++){
 					var dataset = $.extend(true, {}, chartStyling[i]);
-					var backendDataset = backendChartData.datasets[i];
+					var backendDataset = this.graphNumberFixes(i, backendChartData.datasets[i]);
 					if( backendDataset ) dataset.data = backendDataset;
 					outputStructure.datasets.push(dataset);
 				}
 				return outputStructure;
+			},
+			graphNumberFixes: function(index, dataset){
+				var output = [];
+				for(var i=0; i<dataset.length; i++){
+					var value = dataset[i];
+					if( index==1 ) value = value/100;	// divide Revenue by 100 --to make the graph look more interesting
+					output.push(value);
+				}
+				return output;
 			}
 		},
 		
@@ -691,6 +703,7 @@
 						_main.direction.isReady();
 					});
 				},
+				// todo: keep trying until GEOMETRIC_CENTER || RANGE_INTERPOLATED
 				withinRange: function(result){
 					var currentLatLng = {
 						lat: result.geometry.location.lat(),
