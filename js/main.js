@@ -705,14 +705,24 @@
 		},
 		
 		filterSpecialtyFood: {
-			filtersArray: [
+			defaultArray: [
 				{ name:'_Uncategorized_', items:[] }
 			],
+			filtersArray: [],
+			rebuildFilter: function(){
+				this.filtersArray = [];
+				var resultsArray = _root.nearbySearch.resultsArray;
+				for(var i=0; i<resultsArray.length; i++){
+					this.checkWithFilters(resultsArray[i]);
+				}
+			},
 			checkWithFilters: function(itemData){
 				var found=false;
 				var foodSpecialty = itemData.backendData.foodSpecialty;
 				if(!foodSpecialty) this.filtersArray[0].items.push(itemData);
 				else {
+					if(!this.filtersArray.length)
+						this.filtersArray=$.extend(true, [], this.defaultArray);
 					for(var i=0; i<this.filtersArray.length; i++){
 						if(foodSpecialty==this.filtersArray[i].name) {
 							found = !found;
@@ -722,7 +732,7 @@
 					if(found) this.filtersArray[i].items.push(itemData);
 					else this.filtersArray.push({ name:foodSpecialty, items:[itemData] });
 				}
-				this.addMarker(itemData, this.filtersArray[found?i:0]);
+				if(!itemData.marker) this.addMarker(itemData, this.filtersArray[found?i:0]);
 				this.checkIfSearchComplete();
 			},
 			addMarker: function(itemData, filtersArrayRow){
@@ -1325,6 +1335,7 @@
 		foodSpecialtyChanged: function(textfield){
 			var value = $(textfield).val();
 			_root.backendHelper.collectSpecialtyFoodData(value);
+			_root.filterSpecialtyFood.rebuildFilter();
 		},
 		addNewRow: function(){
 			if(!this.isOnline()) return;
