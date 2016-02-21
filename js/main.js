@@ -713,7 +713,8 @@
 				this.filtersArray = [];
 				var resultsArray = _root.nearbySearch.resultsArray;
 				for(var i=0; i<resultsArray.length; i++){
-					this.checkWithFilters(resultsArray[i]);
+					if(resultsArray[i].backendData)
+						this.checkWithFilters(resultsArray[i]);
 				}
 			},
 			checkWithFilters: function(itemData){
@@ -1138,6 +1139,7 @@
 				this.getData(resultItem.place.id, function(data){
 					resultItem.backendData = data || emptyDataSample;
 					_root.filterSpecialtyFood.checkWithFilters(resultItem);
+					_root.filterSpecialtyFood.rebuildFilter();
 				});
 			},
 			replaceColumnWithNewData: function(targetObj, data, callback){
