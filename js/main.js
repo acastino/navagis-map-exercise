@@ -611,6 +611,7 @@
 							_parent.showHideSingleMarker(restoItems[i].marker, true, restoItems[i]);
 						}
 					});
+					_root.restoCounter.updateCircleContent.changeHandler();
 				},
 				hideAllMarkers: function(){
 					var allResults = _root.nearbySearch.resultsArray;
@@ -620,7 +621,7 @@
 				},
 				showHideSingleMarker: function(marker, target, result){
 					marker.setVisible(target);
-					if(result) result.markerVisible = target;
+					if(result) result.markerVisible=target;
 				}
 			},
 			markerClickHandler: function(itemData){
@@ -1184,6 +1185,7 @@
 					counterText.parent().parent().parent().parent().addClass('counterTextCss'); //holder
 					counterText.parent().parent().parent().next().hide(); // arrow
 					counterText.parent().parent().parent().prev().hide(); // close button
+					counterText.parent().parent().css({width:'auto'});
 					counterText.html(text);
 				}
 			}
