@@ -163,22 +163,22 @@ html, body {
 
 
 
-#filters .featureWindow div {
+#filters .featureWindow .list div {
 	margin: 1px;
 	padding: 5px;
 	cursor: pointer;
 	padding-right: 10px;
 }
 
-#filters .featureWindow div:hover {
+#filters .featureWindow .list div:hover {
 	background: rgb(235,235,235);
 }
 
-#filters .featureWindow input {
+#filters .featureWindow .list input {
 	margin-right: 8px;
 }
 
-#filters .featureWindow em {
+#filters .featureWindow .list em {
 	font-size: 10px;
 	color: #999;
 }
@@ -210,6 +210,7 @@ html, body {
 }
 
 .counterTextCss {
+	transition: none !important;
 	z-index: -1000 !important;
 	background: #fff;
 	border: 1px solid #99f;

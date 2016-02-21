@@ -191,11 +191,12 @@
 			capitalize: function(val){
 				return val.charAt(0).toUpperCase()+val.substr(1).toLowerCase();
 			},
-			filtersRowTemplate: $('#filters .featureWindow div').remove(),
+			filtersRowTemplate: $('#filters .featureWindow .list div').remove(),
 			searchStarted: function(){
 				$('#filters').hide();
 				$('#searching').show();
 				$('#directions').hide();
+				$('#restoCounter').hide();
 			},
 			searchEnded: function(){
 				$('#filters').show();
@@ -484,6 +485,8 @@
 				}, 2000);
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
+				_root.directionsHelper.updateTargetLocation();
+				_root.directionsHelper.askForLocation();
 				_root.nearbySearch.checkForDetails();
 			},
 			offline: function(){
@@ -494,6 +497,7 @@
 				$('.featureButtons').animate({ opacity: 0.8 });
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
+				_root.directionsHelper.askForLocation();
 			},
 			isOnline: false
   		},
@@ -503,6 +507,7 @@
 			resultsArray: [],
 			serviceObj: null,
 			currentItem: null,
+			searchComplete: false,
 			init: function(){
 				_root.loading.searchStarted();
 				this.serviceObj = new google.maps.places.PlacesService(mapObj);
@@ -515,6 +520,7 @@
 			performSearch: function(request){
 				var _parent = this;
 				var numPagesProcessed = 0;
+				this.searchComplete = false;
 				console.info('searching for any', request.types, 'within the radius of ', request.radius, ' meters');
 				var searchObj = this.serviceObj.nearbySearch(request, function(results, status, pagination) {
 					if(status == google.maps.places.PlacesServiceStatus.OK) {
@@ -522,20 +528,27 @@
 						console.log('results count: '+ results.length +' (page '+ numPagesProcessed +')');
 						for(var i=0; i<results.length; i++) {
 							(function(place, i){ // using closure to send correct data to callbacks for later use --not relying on "i"
-								var marker = _root.mapHelper.addMarker(place);
-								var itemData = { index:i, place:place, marker:marker, markerVisible:true, noDetails:true };
-								_root.backendHelper.mergeWithMapsData(itemData);
+							//	var marker = _root.mapHelper.addMarker(place);
+								var itemData = {
+									index:i,
+									place:place,
+							//		marker:marker,
+									markerVisible:true,
+									noDetails:true
+								};
+					//			_parent.addToRestoTypes(place.types, itemData);
 								_parent.resultsArray.push(itemData);
-								_parent.addToRestoTypes(place.types, itemData);
-								_root.eventsHelper.startListening(marker, 'click', function(){
-									_parent.markerClickHandler(itemData);
-								});
+								_root.backendHelper.mergeWithMapsData(itemData);
+							//	_root.eventsHelper.startListening(marker, 'click', function(){
+							//		_parent.markerClickHandler(itemData);
+							//	});
 							})(results[i], i);
 						}
 						if(pagination.hasNextPage) pagination.nextPage();
 						else {
 							console.info('total results collected: ', _parent.resultsArray.length);
-							_parent.filtersList.updateDisplay();
+					//		_parent.filtersList.updateDisplay();
+							_parent.searchComplete = true;
 						}
 		//				_parent.getItemDetails.startSequence();
 					} else console.error(status);
@@ -553,31 +566,33 @@
 					else this.restoTypes.push({ name:type, items:[itemData] });
 				}
 			},
-			getRestoTypeNames: function(){
+			getRestoTypeNames: function(filtersArray){
 				var names = [];
-				for(var i=0; i< this.restoTypes.length; i++){
-					names.push(this.restoTypes[i].name+','+i);
+				filtersArray = filtersArray || this.restoTypes;
+				for(var i=0; i< filtersArray.length; i++){
+					names.push(filtersArray[i].name+','+i);
 				}
 				return names;
 			},
 			filtersList: {
-				updateDisplay: function(){
-					var filtersHolder = $('#filters .featureWindow').html('');
+				updateDisplay: function(filtersArray){
+					var filtersHolder = $('#filters .featureWindow .list').html('');
 					var rowTemplate = _root.loading.filtersRowTemplate;
-					var restoTypes = _root.nearbySearch.getRestoTypeNames().sort();
+					var restoTypes = _root.nearbySearch.getRestoTypeNames(filtersArray).sort();
 					for(var i=0; i<restoTypes.length; i++){
 						var cloneCopy = rowTemplate.clone();
 						filtersHolder.append(cloneCopy);
-						(this.handleUI)(restoTypes[i],cloneCopy);
+						(this.handleUI)(restoTypes[i],cloneCopy,filtersArray);
 					}
-					_root.loading.searchEnded();
 				},
-				handleUI: function(restoType, $elem){
+				handleUI: function(restoType, $elem, filtersArray){
+					filtersArray = filtersArray || _root.nearbySearch.restoTypes;
 					var _parent = this;
 					var restoTypeArr = restoType.split(',');
 					var restoTypeId = restoTypeArr[1];
-					var restoCount = _root.nearbySearch.restoTypes[restoTypeId].items.length;
-					var cleanedName = this.fixTitle(restoTypeArr[0]);
+					var restoCount = filtersArray[restoTypeId].items.length;
+					if(filtersArray) var cleanedName = restoTypeArr[0];
+					else var cleanedName = this.fixTitle(restoTypeArr[0]);
 					$elem.find('input').attr('value', restoTypeId);
 					$elem.find('span').html(cleanedName);
 					$elem.find('em').html('('+restoCount+')');
@@ -586,8 +601,9 @@
 					});
 					$elem.find('input').click(function(event){
 						event.stopPropagation();
-						_parent.applySelected();
+						_parent.applySelected(filtersArray);
 					});
+					if(!restoCount) $elem.hide();
 				},
 				fixTitle: function(val){
 					var outArr = [];
@@ -599,14 +615,15 @@
 					output = output.replace(/of/i, 'of');
 					return output;
 				},
-				applySelected: function(){
+				applySelected: function(filtersArray){
 					var _parent = this;
 					this.hideAllMarkers();
 					var infoWindow = _root.mapHelper.infoWindow;
 					if( infoWindow.instance ) infoWindow.instance.close();
 					$('#filters .featureWindow input:checked').each(function(){
 						var restoIndex = this.value;
-						var restoItems = _root.nearbySearch.restoTypes[restoIndex].items;
+						var restoArray = filtersArray || _root.nearbySearch.restoTypes;
+						var restoItems = restoArray[restoIndex].items;
 						for(var i=0; i<restoItems.length; i++){
 							_parent.showHideSingleMarker(restoItems[i].marker, true, restoItems[i]);
 						}
@@ -687,6 +704,42 @@
 			}
 		},
 		
+		filterSpecialtyFood: {
+			filtersArray: [
+				{ name:'_Uncategorized_', items:[] }
+			],
+			checkWithFilters: function(itemData){
+				var found=false;
+				var foodSpecialty = itemData.backendData.foodSpecialty;
+				if(!foodSpecialty) this.filtersArray[0].items.push(itemData);
+				else {
+					for(var i=0; i<this.filtersArray.length; i++){
+						if(foodSpecialty==this.filtersArray[i].name) {
+							found = !found;
+							break;
+						}
+					}
+					if(found) this.filtersArray[i].items.push(itemData);
+					else this.filtersArray.push({ name:foodSpecialty, items:[itemData] });
+				}
+				this.addMarker(itemData, this.filtersArray[found?i:0]);
+				this.checkIfSearchComplete();
+			},
+			addMarker: function(itemData, filtersArrayRow){
+				itemData.marker = _root.mapHelper.addMarker(itemData.place);
+				_root.restoCounter.updateCircleContent.changeHandler();
+				_root.eventsHelper.startListening(itemData.marker, 'click', function(){
+					_root.nearbySearch.markerClickHandler(itemData);
+				});
+			},
+			checkIfSearchComplete: function(){
+				if(_root.nearbySearch.searchComplete) {
+					_root.nearbySearch.filtersList.updateDisplay(this.filtersArray);
+					_root.loading.searchEnded();
+				}
+			}
+		},
+		
 		directionsHelper: {
 			currentOrigin: null,
 			currentTarget: null,
@@ -701,17 +754,21 @@
 				var _parent = this;
 				this.currentOrigin = null;
 				this.domUtils.sectionsHelper.currentLocation.loading.show();
-				navigator.geolocation.getCurrentPosition(function(location){
+				var isOnline = _root.eventsHelper.isOnline;
+				if(!isOnline) _parent.domUtils.updateAddressDisplay({
+					error: 'You are currently Offline.'
+				});
+				else navigator.geolocation.getCurrentPosition(function(location){
 					console.log('geolocation: ', location);
 					_parent.hasAllowedAccess = true;
-					_parent.geoCode.query(location, false, function(data){	// todo: should keep trying if got GEOMETRIC_CENTER?
+					_parent.geoCode.query(location, false, function(data){	// todo: should keep trying until GEOMETRIC_CENTER?
 						if(!data.error) {
 							if( _parent.geoCode.withinRange(data.results[0]) )
 								_parent.currentOrigin = data.result = data.results[0];
 							else data.error = htmlTemplates.directions.outOfRange;
 						}
 						_parent.domUtils.updateAddressDisplay(data);
-						_parent.direction.isReady();
+						if(!data.error) _parent.direction.isReady();
 					});
 				}, function(error){
 					_parent.hasAllowedAccess = false;
@@ -730,6 +787,7 @@
 				query: function(location, skipInterpolated, callback){
 					var _main = _root.directionsHelper;
 					var _parent = _main.geoCode;
+					if(!_parent.instance) return;
 					_parent.instance.geocode({'location': {
 						lat: location.coords.latitude,
 						lng: location.coords.longitude
@@ -792,7 +850,8 @@
 			},
 			updateTargetLocation: function(skipReplace){
 				var currentItem = _root.nearbySearch.currentItem;
-				if(!currentItem || !currentItem.detailsResult) { // abort and wait for the detailsResult response
+				var isOnline = _root.eventsHelper.isOnline;
+				if(!isOnline || !currentItem || !currentItem.detailsResult) { // abort and wait for the detailsResult response
 					this.removeTargetLocation();
 					return;
 				} 
@@ -813,8 +872,10 @@
 			removeTargetLocation: function(){
 				_root.directionsHelper.currentTarget=null;
 				this.domUtils.sectionsHelper.targetLocation.noTarget.show();
-				this.domUtils.showHideRoutes(false);
-				this.direction.renderer.setMap(null);
+				if(this.direction.renderer) {
+					this.direction.renderer.setMap(null);
+					this.domUtils.showHideRoutes(false);
+				}
 				this.direction.isReady();
 			},
 			direction: {
@@ -827,6 +888,7 @@
 				},
 				isReady: function(){
 					var _main = _root.directionsHelper;
+					_main.domUtils.sectionsHelper.targetLocation.show();
 					if( _main.currentOrigin && _main.currentTarget ) {
 						_main.domUtils.sectionsHelper.actionButtonsHolder.startReady.show();
 					} else {
@@ -954,7 +1016,8 @@
 								targetLocation.find('.noTarget').show();
 							}
 						},
-						hide: function(){ $('.targetLocation').hide() }
+						show: $('.targetLocation').show,
+						hide: $('.targetLocation').hide
 					},
 					actionButtonsHolder: {
 						startEmpty: {
@@ -1005,7 +1068,7 @@
 					$('#mapHolder').animate({width: mapTarg});
 					$('#directionsPanel').animate({left: panelTarg}, {
 						complete: function(){
-							google.maps.event.trigger(mapObj, 'resize');
+							window.google && google.maps.event.trigger(mapObj, 'resize');
 							if(callback) callback();
 							
 							// todo: mapObj.panTo(searchAreaMarker.getPosition());
@@ -1064,6 +1127,7 @@
 				var emptyDataSample = this.startingDataTemplate;
 				this.getData(resultItem.place.id, function(data){
 					resultItem.backendData = data || emptyDataSample;
+					_root.filterSpecialtyFood.checkWithFilters(resultItem);
 				});
 			},
 			replaceColumnWithNewData: function(targetObj, data, callback){
@@ -1117,10 +1181,10 @@
 					}
 				});
 				var circle = _parent.circleInstance = new google.maps.Circle({
-		//			center: '',
+					center: initMapCenterObj,
 		//			map: mapObj,
 					fillColor: '#99f',
-					fillOpacity: 0.5,
+		//			fillOpacity: 0.5,
 					strokeColor: '#99f',
 		//			strokeOpacity: 1.0,
 					strokeWeight: 2,
@@ -1172,7 +1236,7 @@
 					var resultsArray = _root.nearbySearch.resultsArray;
 					for(var i=0; i<resultsArray.length; i++) {
 						var resultItem = resultsArray[i];
-						if( resultItem.markerVisible ){
+						if( resultItem.markerVisible && resultItem.marker ){
 							var itemPosition = resultItem.marker.getPosition();
 							var itemDistance = google.maps.geometry.spherical.computeDistanceBetween(currentCircleCenter, itemPosition);
 							if( itemDistance <= currentCircleRadius ) restoCount++;
@@ -1220,6 +1284,7 @@
 			_root.directionsHelper.showTargetPinDetails();
 		},
 		queryDirections: function(){
+			if(!window.adminCommands.isOnline()) return;
 			_root.directionsHelper.startSearching();
 		}
 		
