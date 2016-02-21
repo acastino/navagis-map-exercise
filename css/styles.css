@@ -107,7 +107,6 @@ html, body {
 	margin: 10px;
 	font-family: "Roboto";
 	font-size: 11px;
-	border-radius: 2px;
 	display: none;
 }
 
@@ -119,10 +118,12 @@ html, body {
 	text-align: center;
 	color: rgb(86,86,86);
 	position: relative;
+	border-radius: 2px;
 }
 
 #filters .title:hover,
-#directions .title:hover {
+#directions .title:hover,
+#restoCounter .title:hover {
 	color: #000;
 	background: rgb(235,235,235);
 	cursor: pointer;
@@ -181,6 +182,46 @@ html, body {
 	font-size: 10px;
 	color: #999;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+#restoCounter {
+	right: 117px;
+	left: auto;
+}
+
+.restoCounterDepressed {
+	background: #eef !important;
+	padding-bottom: 6px !important;
+	padding-right: 6px !important;
+	border-top: 1px solid #bbf;
+	border-left: 1px solid #bbf;
+	border-right: 1px solid #ddf;
+	border-bottom: 1px solid #ddf;
+}
+
+.counterTextCss {
+	z-index: -1000 !important;
+	background: #fff;
+	border: 1px solid #99f;
+	border-radius: 10px;
+	margin-top: 42px;
+	height: 32px !important;
+	pointer-events: none;
+	text-align: center;
+}
+
+
+
 
 
 

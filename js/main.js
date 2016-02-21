@@ -156,6 +156,7 @@
 			_root.backendHelper.waitDatabase(function(){
 				_root.mapHelper.init();
 				_root.nearbySearch.init();
+				_root.restoCounter.init();
 				_root.directionsHelper.init();
 				_root.loading.delayedHiding(2);
 				_root.loading.showHideFeatureWindows();
@@ -198,8 +199,9 @@
 			},
 			searchEnded: function(){
 				$('#filters').show();
-				$('#searching').hide();
 				$('#directions').show();
+				$('#restoCounter').show();
+				$('#searching').hide();
 			},
 			showHideDirectionsWindow: function(forceHide){
 				var $elem = $('#directions .title');
@@ -281,6 +283,9 @@
 							_root.mapHelper.isVisible({
 								selector: "$('.infoWindow').parent().parent()"
 							}, function($elem){
+								$elem.parent().next().show(); // close button
+								$elem.parent().prev().show(); // drop shadow
+								$elem.parent().parent().removeClass('counterTextCss');
 								$elem.css({ width: config.infoWindowSize.collapsed });
 								$elem.parent().parent().css({transition:'all ease 0.3s'});
 								_parent.updateDynamicViewOnlyData(currentItem);
@@ -518,7 +523,7 @@
 						for(var i=0; i<results.length; i++) {
 							(function(place, i){ // using closure to send correct data to callbacks for later use --not relying on "i"
 								var marker = _root.mapHelper.addMarker(place);
-								var itemData = { index:i, place:place, marker:marker, noDetails:true };
+								var itemData = { index:i, place:place, marker:marker, markerVisible:true, noDetails:true };
 								_root.backendHelper.mergeWithMapsData(itemData);
 								_parent.resultsArray.push(itemData);
 								_parent.addToRestoTypes(place.types, itemData);
@@ -603,18 +608,19 @@
 						var restoIndex = this.value;
 						var restoItems = _root.nearbySearch.restoTypes[restoIndex].items;
 						for(var i=0; i<restoItems.length; i++){
-							_parent.showHideSingleMarker(restoItems[i].marker, true);
+							_parent.showHideSingleMarker(restoItems[i].marker, true, restoItems[i]);
 						}
 					});
 				},
 				hideAllMarkers: function(){
 					var allResults = _root.nearbySearch.resultsArray;
 					for(var i=0; i<allResults.length; i++){
-						this.showHideSingleMarker(allResults[i].marker, false);
+						this.showHideSingleMarker(allResults[i].marker, false, allResults[i]);
 					}
 				},
-				showHideSingleMarker: function(marker, target){
+				showHideSingleMarker: function(marker, target, result){
 					marker.setVisible(target);
+					if(result) result.markerVisible = target;
 				}
 			},
 			markerClickHandler: function(itemData){
@@ -993,11 +999,18 @@
 					var panelWidth = $('#directionsPanel').width()+21;
 					var mapTarg = shouldShow? (docWidth-panelWidth)+'px' : '100%';
 					var panelTarg = shouldShow? 0 : '-'+panelWidth+'px';
-					var settings = callback?{complete:callback}:{};
 					$('.targDestAddName strong').html(data.name);
 					$('.targDestAdd').html(data.address);
 					$('#mapHolder').animate({width: mapTarg});
-					$('#directionsPanel').animate({left: panelTarg}, settings);
+					$('#directionsPanel').animate({left: panelTarg}, {
+						complete: function(){
+							google.maps.event.trigger(mapObj, 'resize');
+							if(callback) callback();
+							
+							// todo: mapObj.panTo(searchAreaMarker.getPosition());
+							
+						}
+					});
 				}
 			}
 		},
@@ -1083,6 +1096,96 @@
 					}
 				);
 				*/
+			}
+		},
+		
+		restoCounter: {
+			circleInstance: null,
+			labelInstance: null,
+			init: function(){
+				var _parent = this;
+				$('#restoCounter .title').click(function(){
+					var pressedClass = 'restoCounterDepressed';
+					var active = $(this).hasClass(pressedClass);
+					if(!active) {
+						$(this).addClass(pressedClass);
+						_parent.showCircle();
+					} else {
+						$(this).removeClass(pressedClass);
+						_parent.hideCircle();
+					}
+				});
+				var circle = _parent.circleInstance = new google.maps.Circle({
+		//			center: '',
+		//			map: mapObj,
+					fillColor: '#99f',
+					fillOpacity: 0.5,
+					strokeColor: '#99f',
+		//			strokeOpacity: 1.0,
+					strokeWeight: 2,
+					draggable: true,
+					editable: true
+			    });
+			   _parent.labelInstance = new google.maps.InfoWindow({
+			        content: '<div id="counterText"></div>',
+			        disableAutoPan: true,
+			    });
+		//		label.open(mapObj);
+			    google.maps.event.addListener(circle, 'center_changed', _parent.updateCircleContent.changeHandler);
+			    google.maps.event.addListener(circle, 'radius_changed', _parent.updateCircleContent.changeHandler);
+			},
+			updateCircleCoords: function(){
+					var bounds = mapObj.getBounds();
+					var center = mapObj.getCenter();
+					var neCorner = bounds.getNorthEast();
+					var radius = google.maps.geometry.spherical.computeDistanceBetween(center, neCorner);
+					this.circleInstance.setCenter(center);
+					this.circleInstance.setRadius(radius / 2);
+			},
+			showCircle: function(){
+				this.updateCircleCoords();
+				this.labelInstance.setMap(mapObj);
+				this.circleInstance.setMap(mapObj);
+				this.updateCircleContent.changeHandler();
+			},
+			hideCircle: function(){
+				this.circleInstance.setMap(null);
+				this.labelInstance.setMap(null);
+			},
+			updateCircleContent: {
+				changeHandler: function(){
+					var _main = _root.restoCounter;
+					var _this = _main.updateCircleContent;
+					var circle = _main.circleInstance;
+					var label = _main.labelInstance;
+					var restoCount = _this.countRestosWithin(circle);
+					label.setPosition(circle.getCenter());
+					if(restoCount==0) _this.replaceLabelContent('No Restaurants here :)');
+					else if(restoCount==1) _this.replaceLabelContent(restoCount+' Restaurant');
+					else _this.replaceLabelContent(restoCount+' Restaurants');
+				},
+				countRestosWithin: function(circle){
+					var restoCount = 0;
+					var currentCircleCenter = circle.getCenter();
+					var currentCircleRadius = circle.getRadius();
+					var resultsArray = _root.nearbySearch.resultsArray;
+					for(var i=0; i<resultsArray.length; i++) {
+						var resultItem = resultsArray[i];
+						if( resultItem.markerVisible ){
+							var itemPosition = resultItem.marker.getPosition();
+							var itemDistance = google.maps.geometry.spherical.computeDistanceBetween(currentCircleCenter, itemPosition);
+							if( itemDistance <= currentCircleRadius ) restoCount++;
+						}
+					}
+					return restoCount;
+				},
+				replaceLabelContent: function(text){
+					var counterText = $('#counterText');
+					counterText.parent().parent().parent().parent().addClass('counterTextCss'); //holder
+					counterText.parent().parent().parent().next().hide(); // arrow
+					counterText.parent().parent().parent().prev().hide(); // close button
+					counterText.html(text);
+				}
 			}
 		}
 		
