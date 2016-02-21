@@ -478,7 +478,7 @@
 				this.isOnline = true;
 				$('#offline').fadeOut();
 				$('#online').css({ top: 0, opacity: 1 });
-				$('#map, #filters').animate({ opacity: 1 });
+				$('#map, .featureButtons').animate({ opacity: 1 });
 				setTimeout(function(){
 					$('#online').animate({ top:'-100px', opacity:0 });
 				}, 2000);
@@ -491,7 +491,7 @@
 				this.isOnline = false;
 				$('#offline').fadeIn();
 				$('#map').animate({ opacity: 0.6 });
-				$('#filters').animate({ opacity: 0.8 });
+				$('.featureButtons').animate({ opacity: 0.8 });
 				_root.mapHelper.infoWindow.onlineOfflineDisplayFixes();
 				_root.mapHelper.infoWindow.onlineOfflineAdminPanelFixes();
 			},
