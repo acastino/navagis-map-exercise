@@ -244,17 +244,52 @@
 			genLatLng: function(lat, lng){
 				return new google.maps.LatLng(lat, lng)
 			},
-			addMarker: function(place){
+			addMarker: function(place, filtersArrayIndex, filtersArrayRow){
+				var icons = [
+					'bread.png',
+					'burger.png',
+					'butcher-2.png',
+					'candy_cane.png',
+					'candy_floss.png',
+					'candy.png',
+					'cheese.png',
+					'drink.png',
+					'eggs.png',
+					'farmstand.png',
+					'fruits.png',
+					'grocery.png',
+					'gumball_machine.png',
+					'hotdog.png',
+					'japanese-sweet-2.png',
+					'liquor.png',
+					'milk_and_cookies.png',
+					'milk_bottle.png',
+					'muffin_bagle.png',
+					'patisserie.png',
+					'sandwich-2.png',
+					'tajine-2.png',
+					'tortillas1.png'
+				];
+				/*
+				if(!this.markerCounter || this.markerCounter>=icons.length) this.markerCounter=0;
+				var iconIndex = this.markerCounter;
+				this.markerCounter++;
+				*/
 				return new google.maps.Marker({
 					map: mapObj,
 					position: place.geometry.location,
-					/*
-				    icon: {
-						url: 'http://maps.gstatic.com/mapfiles/circle.png',
-						anchor: new google.maps.Point(10, 10),
-						scaledSize: new google.maps.Size(20, 34)
-					}
-					*/
+				//	label: 'You'
+					
+			//	    icon: {
+			//			url: './markers/red/' + icons[filtersArrayIndex],
+				//		url: './markers/sample.png',
+				//		url: 'http://maps.gstatic.com/mapfiles/circle.png',
+				//		url: 'http://icons.iconarchive.com/icons/paomedia/small-n-flat/512/map-marker-icon.png',
+				//		size: new google.maps.Size(20, 32),
+				//		anchor: new google.maps.Point(10, 10),
+					//	scaledSize: new google.maps.Size(30, 46)
+			//		}
+					
 				});
 			},
 			infoWindow: {
@@ -733,11 +768,12 @@
 					if(found) this.filtersArray[i].items.push(itemData);
 					else this.filtersArray.push({ name:foodSpecialty, items:[itemData] });
 				}
-				if(!itemData.marker) this.addMarker(itemData, this.filtersArray[found?i:0]);
+				var filtersArrayRowIndex = found?i:this.filtersArray.length-1;
+				if(!itemData.marker) this.addMarker(itemData, filtersArrayRowIndex, this.filtersArray[filtersArrayRowIndex]);
 				this.checkIfSearchComplete();
 			},
-			addMarker: function(itemData, filtersArrayRow){
-				itemData.marker = _root.mapHelper.addMarker(itemData.place);
+			addMarker: function(itemData, filtersArrayIndex, filtersArrayRow){
+				itemData.marker = _root.mapHelper.addMarker(itemData.place, filtersArrayIndex, filtersArrayRow);
 				_root.restoCounter.updateCircleContent.changeHandler();
 				_root.eventsHelper.startListening(itemData.marker, 'click', function(){
 					_root.nearbySearch.markerClickHandler(itemData);
@@ -1135,7 +1171,7 @@
 				this.dbInstance.child(id).set(data);
 			},
 			mergeWithMapsData: function(resultItem){
-				var emptyDataSample = this.startingDataTemplate;
+				var emptyDataSample = $.extend(true, {}, this.startingDataTemplate);
 				this.getData(resultItem.place.id, function(data){
 					resultItem.backendData = data || emptyDataSample;
 					_root.filterSpecialtyFood.checkWithFilters(resultItem);
@@ -1267,6 +1303,19 @@
 			}
 		}
 		
+	};
+	
+	window.filtersCommands = {
+		showAll: function(){
+			$('#filters .list input').each(function(){
+				$(this).prop('checked', false).trigger('click');
+			});
+		},
+		hideAll: function(){
+			$('#filters .list input').each(function(){
+				$(this).prop('checked', true).trigger('click');
+			});
+		}
 	};
 	
 	window.directionsCommands = {

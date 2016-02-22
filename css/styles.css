@@ -183,7 +183,13 @@ html, body {
 	color: #999;
 }
 
+#filters .featureWindow .showHide {
+	padding: 5px 10px;
+}
 
+#filters .showAll {
+	float: right;
+}
 
 
 
