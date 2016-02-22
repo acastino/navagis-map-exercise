@@ -22,6 +22,17 @@
 		firebase: {
 			baseUrl: 'https://navagismapexercise.firebaseio.com/',
 			stateUrl: '.info/connected',
+		},
+		pinIcons: {
+			'Asian Fusion':				'farmstand.png',
+			'Buffet':					'butcher-2.png',
+			'Chinese Cuisine':			'eggs.png',
+			'Fastfood':					'burger.png',
+			'Filipino Cuisine':			'fruits.png',
+			'International Cuisine':	'muffin_bagle.png',
+			'Japanese Yakiniku':		'japanese-sweet-2.png',
+			'Thai Cuisine':				'tajine-2.png',
+			'Western Cuisine':			'sandwich-2.png',
 		}
 	};
 	
@@ -245,52 +256,23 @@
 				return new google.maps.LatLng(lat, lng)
 			},
 			addMarker: function(place, filtersArrayIndex, filtersArrayRow){
-				var icons = [
-					'bread.png',
-					'burger.png',
-					'butcher-2.png',
-					'candy_cane.png',
-					'candy_floss.png',
-					'candy.png',
-					'cheese.png',
-					'drink.png',
-					'eggs.png',
-					'farmstand.png',
-					'fruits.png',
-					'grocery.png',
-					'gumball_machine.png',
-					'hotdog.png',
-					'japanese-sweet-2.png',
-					'liquor.png',
-					'milk_and_cookies.png',
-					'milk_bottle.png',
-					'muffin_bagle.png',
-					'patisserie.png',
-					'sandwich-2.png',
-					'tajine-2.png',
-					'tortillas1.png'
-				];
-				/*
-				if(!this.markerCounter || this.markerCounter>=icons.length) this.markerCounter=0;
-				var iconIndex = this.markerCounter;
-				this.markerCounter++;
-				*/
-				return new google.maps.Marker({
+				var options = {
 					map: mapObj,
 					position: place.geometry.location,
-				//	label: 'You'
-					
-			//	    icon: {
-			//			url: './markers/red/' + icons[filtersArrayIndex],
+			//		label: 'You'
+				};
+				var iconFilename = config.pinIcons[filtersArrayRow.name];
+				var icon = {
+						url: './markers/red/' + iconFilename,
 				//		url: './markers/sample.png',
 				//		url: 'http://maps.gstatic.com/mapfiles/circle.png',
 				//		url: 'http://icons.iconarchive.com/icons/paomedia/small-n-flat/512/map-marker-icon.png',
 				//		size: new google.maps.Size(20, 32),
 				//		anchor: new google.maps.Point(10, 10),
 					//	scaledSize: new google.maps.Size(30, 46)
-			//		}
-					
-				});
+				};
+				if(iconFilename) options.icon = icon;
+				return new google.maps.Marker(options);
 			},
 			infoWindow: {
 				makeWindow: function(){
@@ -625,9 +607,13 @@
 					var _parent = this;
 					var restoTypeArr = restoType.split(',');
 					var restoTypeId = restoTypeArr[1];
-					var restoCount = filtersArray[restoTypeId].items.length;
+					var filterItem = filtersArray[restoTypeId]
+					var restoCount = filterItem.items.length;
+					var iconFilename = config.pinIcons[filterItem.name];
 					if(filtersArray) var cleanedName = restoTypeArr[0];
 					else var cleanedName = this.fixTitle(restoTypeArr[0]);
+					if(iconFilename) $elem.find('img').prop('src', './markers/red/'+iconFilename);
+					else $elem.find('img').css({visibility: 'hidden'});
 					$elem.find('input').attr('value', restoTypeId);
 					$elem.find('span').html(cleanedName);
 					$elem.find('em').html('('+restoCount+')');
@@ -654,7 +640,7 @@
 					var _parent = this;
 					this.hideAllMarkers();
 					var infoWindow = _root.mapHelper.infoWindow;
-					if( infoWindow.instance ) infoWindow.instance.close();
+					if( infoWindow.instance && !_root.skipClosingInfoWindow ) infoWindow.instance.close();
 					$('#filters .featureWindow input:checked').each(function(){
 						var restoIndex = this.value;
 						var restoArray = filtersArray || _root.nearbySearch.restoTypes;
@@ -748,8 +734,9 @@
 				this.filtersArray = [];
 				var resultsArray = _root.nearbySearch.resultsArray;
 				for(var i=0; i<resultsArray.length; i++){
-					if(resultsArray[i].backendData)
+					if(resultsArray[i].backendData) {
 						this.checkWithFilters(resultsArray[i]);
+					}
 				}
 			},
 			checkWithFilters: function(itemData){
@@ -784,6 +771,12 @@
 					_root.nearbySearch.filtersList.updateDisplay(this.filtersArray);
 					_root.loading.searchEnded();
 				}
+			},
+			replaceMarker: function(){
+				var currentItem = _root.nearbySearch.currentItem;
+				currentItem.marker.setVisible(false);
+				currentItem.marker = null;
+				this.checkWithFilters(currentItem);
 			}
 		},
 		
@@ -1386,7 +1379,11 @@
 		foodSpecialtyChanged: function(textfield){
 			var value = $(textfield).val();
 			_root.backendHelper.collectSpecialtyFoodData(value);
+			_root.filterSpecialtyFood.replaceMarker();
 			_root.filterSpecialtyFood.rebuildFilter();
+			_root.skipClosingInfoWindow = true;
+			window.filtersCommands.showAll();
+			_root.skipClosingInfoWindow = false;
 		},
 		addNewRow: function(){
 			if(!this.isOnline()) return;

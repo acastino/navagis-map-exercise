@@ -167,7 +167,6 @@ html, body {
 	margin: 1px;
 	padding: 5px;
 	cursor: pointer;
-	padding-right: 10px;
 }
 
 #filters .featureWindow .list div:hover {
@@ -181,6 +180,14 @@ html, body {
 #filters .featureWindow .list em {
 	font-size: 10px;
 	color: #999;
+}
+
+#filters .filtersIcon {
+	float: right;
+	height: 24px;
+	padding-left: 5px;
+	margin-top: -3px;
+	opacity: 0.9;
 }
 
 #filters .featureWindow .showHide {
